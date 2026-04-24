@@ -9,5 +9,7 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Aggregated data (regenerable from upstream pipeline outputs)
+# Aggregated data and figure outputs (regenerable from upstream pipeline outputs)
 **/data/*.nc
+**/*.png
+**/*.pdf
