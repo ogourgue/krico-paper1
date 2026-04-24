@@ -1,4 +1,4 @@
-# krico-paper1
+# KRICO Paper 1
 
 Figures and analysis for KRICO Paper 1: *Spawning phenology and upstream connectivity jointly determine larval recruitment success in Antarctic krill*.
 
