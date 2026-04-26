@@ -1,14 +1,14 @@
 # F2 — Phenology curve
 
-Headline figure for KRICO Paper 1: 30-year climatological mean recruitment success rate as a function of release date, with 5th–95th percentile ribbon across years.
+Headline figure for KRICO Paper 1: 32-year climatological mean recruitment success rate as a function of release date, with 5th–95th percentile ribbon across years.
 
 ## Scope
 
 - Aggregates over all source regions (no spatial decomposition).
 - Aggregates over all 32 spawning years (1994–2025).
 - Y-axis: success rate (%).
-- X-axis: release season-day, 0 (Nov 15) → 120 (Mar 15).
-- Annotations: climatological peak day, optimum window width (days within 80% of peak).
+- X-axis: release date, Nov 15 → Mar 14.
+- Annotation: climatological peak day.
 
 Feb 29 cohorts are excluded from the climatology to keep the season-day grid uniformly 121 days across leap and non-leap years.
 
