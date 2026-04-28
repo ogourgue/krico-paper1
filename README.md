@@ -11,11 +11,11 @@ Reads recruitment outcome data produced by [krico-post-production](https://githu
 ## Layout
 
 ```
-F1_domain_map/
-F2_phenology_curve/
-F3_outcome_composition/
-F4_thermal_ice_mechanism/
-F5_spatial_recruitment/
+F1_domain_map/                  # methods: domain, bathymetry zones, CCAMLR areas
+F2_phenology_curve/             # headline: 32-year mean recruitment success vs release date
+F3_outcome_composition/         # 32-year mean fractional outcome breakdown vs release date
+F4_source_maps/                 # release-position density per outcome (where particles came from)
+F5_destination_maps/            # fate-position density per outcome (where particles ended up)
 ```
 
 Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, and `data/` subdirectory.

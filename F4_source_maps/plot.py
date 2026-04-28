@@ -3,10 +3,15 @@ F4 plot: source maps by fate.
 
 Reads data/aggregated.nc and produces source_maps.png:
   - 3 × 2 grid of polar-stereographic maps, one panel per outcome.
-  - Success in top-left, then killed_M*, then exited_domain.
-  - Three colormaps echoing F3: Greens (success), Reds (4 killed),
-    Greys (exited_domain).
-  - Three shared colorbars at the bottom.
+  - Success in top-left, then five killed_M* panels.
+  - Two colormaps echoing F3: Greens (success), Reds (5 killed).
+  - Two shared colorbars at the bottom, centered.
+
+Censored particles are folded into killed_M6_no_advance at plot time
+(consistent with F3): they share the same end-of-tracking, no-advance
+condition, with "censored" marking only the subset whose classification
+is provisional (rising SIC at cutoff). The killed_M6 vs censored
+breakdown lives in the SI.
 """
 
 from __future__ import annotations
@@ -49,14 +54,14 @@ LON_MIN, LON_MAX = -115.0, 40.0
 LAT_MIN, LAT_MAX = -78.0, -40.0
 
 # Panels: outcome name -> (row, col) in the 3 × 2 grid.
-# Success top-left; killed_M* in time-of-action order; exited_domain last.
+# Success top-left; killed_M* in time-of-action order.
 PANEL_LAYOUT = [
     ("success",                (0, 0)),
     ("killed_M1",              (0, 1)),
     ("killed_M4",              (1, 0)),
     ("killed_M5_no_FIV",       (1, 1)),
     ("killed_M5_not_on_shelf", (2, 0)),
-    ("exited_domain",          (2, 1)),
+    ("killed_M6_no_advance",   (2, 1)),
 ]
 
 PANEL_LABELS = {
@@ -65,7 +70,7 @@ PANEL_LABELS = {
     "killed_M4":              "Killed: M4 (calyptope starvation)",
     "killed_M5_no_FIV":       "Killed: M5 (no FIV)",
     "killed_M5_not_on_shelf": "Killed: M5 (off-shelf)",
-    "exited_domain":          "Exited domain",
+    "killed_M6_no_advance":   "Killed: M6 (no advance)",
 }
 
 # Color group per outcome; determines colormap and shared scale.
@@ -75,19 +80,17 @@ COLOR_GROUP = {
     "killed_M4":              "killed",
     "killed_M5_no_FIV":       "killed",
     "killed_M5_not_on_shelf": "killed",
-    "exited_domain":          "exited",
+    "killed_M6_no_advance":   "killed",
 }
 
 CMAPS = {
     "success": "Greens",
     "killed":  "Reds",
-    "exited":  "Greys",
 }
 
 GROUP_LABELS = {
     "success": "Success",
     "killed":  "Killed",
-    "exited":  "Exited domain",
 }
 
 # Percentile used to set per-group vmax. Clipping at the 99th percentile
@@ -137,7 +140,12 @@ def add_panel_labels(ax, letter: str, fate_name: str):
 
 
 def setup_polar_axes(ax):
-    """Configure a polar-stereographic axis with land + coastline."""
+    """Configure a polar-stereographic axis with land + coastline.
+
+    Zorder stack (bottom to top):
+      data (1) < CCAMLR + domain boundaries (2) < land (3) <
+      coastlines (4) < axis spines (5) < panel labels (10)
+    """
     land = cfeature.NaturalEarthFeature(
         "physical", "land", "50m", facecolor="0.85", edgecolor="none"
     )
@@ -145,6 +153,10 @@ def setup_polar_axes(ax):
     ax.coastlines(resolution="50m", linewidth=mpl.rcParams["axes.linewidth"], zorder=4)
     # Crop to the domain extent.
     ax.set_extent([LON_MIN, LON_MAX, LAT_MIN, LAT_MAX], crs=DATA_TRANSFORM)
+    # Push axis spines above land/coastlines so the panel border is never
+    # covered by features that touch or cross it.
+    for spine in ax.spines.values():
+        spine.set_zorder(5)
 
 
 def load_ccamlr_geometries() -> gpd.GeoDataFrame:
@@ -209,10 +221,27 @@ def add_overlays(ax, ccamlr: gpd.GeoDataFrame) -> None:
 
 def plot(aggregated_path: Path, out_path: Path) -> None:
     ds = xr.open_dataset(aggregated_path)
-    density = ds["density"].values                          # (outcome, lat, lon)
+    counts = ds["counts"].values                            # (outcome, lat, lon)
     lon_centers = ds["lon"].values
     lat_centers = ds["lat"].values
     outcome_names = list(ds["outcome"].values.astype(str))
+
+    # Fold censored into killed_M6_no_advance at the count level (consistent
+    # with F3). Then renormalize density within each outcome so each panel
+    # still sums to 1.
+    censored_idx = outcome_names.index("censored")
+    m6_idx = outcome_names.index("killed_M6_no_advance")
+    counts = counts.copy()
+    counts[m6_idx] = counts[m6_idx] + counts[censored_idx]
+    counts[censored_idx] = 0
+
+    totals = counts.sum(axis=(1, 2)).astype(np.float64)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        density = np.where(
+            totals[:, None, None] > 0,
+            counts / totals[:, None, None],
+            0.0,
+        ).astype(np.float32)
 
     # Cell edges for pcolormesh.
     dlon = lon_centers[1] - lon_centers[0]
@@ -223,8 +252,8 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     # ------------------------------------------------------------------
     # Compute a single shared vmax across all 6 panels, using the 99th
     # percentile of all nonzero density cells pooled together.
-    # All three colormaps use the same numeric scale, so a given hue
-    # intensity means the same density everywhere in the figure.
+    # Both colormaps use the same numeric scale, so a given hue intensity
+    # means the same density everywhere in the figure.
     # ------------------------------------------------------------------
     panel_indices = [outcome_names.index(name) for name, _ in PANEL_LAYOUT]
     pooled = np.concatenate([
@@ -235,7 +264,7 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
         raise RuntimeError("All panels are empty.")
     shared_vmax = float(np.percentile(pooled, COLOR_PERCENTILE))
     print(f"Shared vmax (P{COLOR_PERCENTILE:.0f} of all nonzero cells): {shared_vmax:.4e}")
-    group_max = {"success": shared_vmax, "killed": shared_vmax, "exited": shared_vmax}
+    group_max = {"success": shared_vmax, "killed": shared_vmax}
 
     # ------------------------------------------------------------------
     # Figure
@@ -286,15 +315,21 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
         add_panel_labels(ax, panel_letters[i], PANEL_LABELS[name])
 
     # ------------------------------------------------------------------
-    # Three colorbars at the bottom, one per group, side by side.
+    # Two colorbars at the bottom: one per column.
+    # The Greens colorbar sits below the success column (col 0); the Reds
+    # colorbar sits below the killed column (col 1). Each colorbar is
+    # inset to ~90% of its column width via a 3-cell sub-subgridspec, so
+    # the leftmost / rightmost tick labels have room to render without
+    # overflowing the figure or crashing into the neighbor.
     # ------------------------------------------------------------------
-    # We use a sub-GridSpec inside the bottom row so the three bars
-    # share alignment with each other and with the panels above.
     cbar_gs = gs[3, :].subgridspec(
-        nrows=1, ncols=3, wspace=0.4,
+        nrows=1, ncols=2, wspace=0.02,
     )
-    for j, group in enumerate(("success", "killed", "exited")):
-        cax = fig.add_subplot(cbar_gs[0, j])
+    for j, group in enumerate(("success", "killed")):
+        inner = cbar_gs[0, j].subgridspec(
+            nrows=1, ncols=3, width_ratios=[0.05, 0.9, 0.05], wspace=0.0,
+        )
+        cax = fig.add_subplot(inner[0, 1])
         cb = fig.colorbar(group_mappable[group], cax=cax, orientation="horizontal")
         cb.set_label(f"{GROUP_LABELS[group]} density")
         # Force scientific notation with the multiplier on the right of the

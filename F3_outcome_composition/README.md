@@ -14,15 +14,16 @@ Stacked-area showing what happens to each particle as a function of release date
   - `killed_M4` — during calyptope window (starvation under sea ice)
   - `killed_M5_no_FIV` — at sea-ice advance event (development too slow)
   - `killed_M5_not_on_shelf` — at sea-ice advance event (off-shelf at advance)
+  - `killed_M6_no_advance` — alive at end of tracking, no winter sea-ice advance detected
   - `success` — at sea-ice advance event (top of stack)
 
-`killed_M6_no_advance` and `censored` are negligible (each well below 0.05% over the full 30 years) and dropped from the stack at plot time. The `aggregate.py` script always computes all 8 counts; `plot.py` reports which categories were dropped to stdout.
+Censored particles (alive at end of tracking, no advance detected, but SIC rising at cutoff) are folded into `killed_M6_no_advance` for this figure. They share the same end-of-tracking, no-advance condition; the "censored" label only marks the subset whose classification is provisional. The killed_M6 vs censored breakdown lives in the SI.
 
 Feb 29 cohorts are excluded (consistent with F2).
 
 ## Design notes
 
-- Colors: `success` is matplotlib `C2` (green); the four `killed_M*` layers use a perceptually uniform gradient sampled from `YlOrRd`, lightest = earliest filter (M1), darkest = latest filter (M5_not_on_shelf); `exited_domain` is a light gray (`"0.7"`).
+- Colors: `success` is matplotlib `C2` (green); the five `killed_M*` layers use a perceptually uniform gradient sampled from `YlOrRd`, lightest = earliest filter (M1), darkest = latest filter (M6_no_advance); `exited_domain` is a light gray (`"0.7"`).
 - No y-axis grid: grid lines compete with filled bands and would only show through the lightest layers, providing inconsistent reference. Y-values are read from band thicknesses, not axis position.
 - Legend inside, lower-left corner, on top of the `exited_domain` band where contrast is good and there is no biological signal to obscure.
 
