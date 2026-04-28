@@ -5,8 +5,10 @@ Reads data/aggregated.nc and produces outcome_composition.png:
   - Stacked-area showing the climatological fractional breakdown of all
     outcomes vs. release date.
   - 32-year mean across spawning years.
-  - Negligible categories (< 1% over the full dataset) are dropped from
-    the stack and reported in stdout.
+  - Censored particles are folded into killed_M6_no_advance (they share the
+    same "alive at end of tracking, no advance detected" condition; censored
+    is the subset where SIC was rising at the cutoff, classification
+    provisional). The killed_M6 vs censored breakdown lives in the SI.
 """
 
 from __future__ import annotations
@@ -36,10 +38,6 @@ mpl.rcParams.update({
 TICK_DAYS = [16, 47, 78, 106]
 TICK_LABELS = ["Dec 1", "Jan 1", "Feb 1", "Mar 1"]
 
-# Categories to drop from the stack if their dataset-wide mean fraction is
-# below this threshold (in percent).
-DROP_THRESHOLD_PCT = 1.0
-
 # Layer order, bottom to top of the stack.
 # exited_domain at the bottom: it is a modeling-domain limitation rather
 # than a biological outcome, so it sits as a "noise floor" below the
@@ -51,6 +49,7 @@ LAYER_ORDER = [
     "killed_M4",
     "killed_M5_no_FIV",
     "killed_M5_not_on_shelf",
+    "killed_M6_no_advance",
     "success",
 ]
 
@@ -60,6 +59,7 @@ LAYER_LABELS = {
     "killed_M4": "Killed: M4 (calyptope starvation)",
     "killed_M5_no_FIV": "Killed: M5 (no FIV)",
     "killed_M5_not_on_shelf": "Killed: M5 (off-shelf)",
+    "killed_M6_no_advance": "Killed: M6 (no advance)",
     "exited_domain": "Exited domain",
     "success": "Success",
 }
@@ -70,7 +70,7 @@ def layer_colors(killed_layers: list[str]) -> dict[str, tuple]:
     Build a color mapping for all layers.
 
     - success         -> matplotlib C2 (green).
-    - killed_M*       -> 4-step gradient sampled from YlOrRd (truncated to
+    - killed_M*       -> n-step gradient sampled from YlOrRd (truncated to
                          avoid the very-light end).
     - exited_domain   -> gray.
     - others          -> default color cycle as fallback (should not occur
@@ -106,6 +106,17 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
 
     n_years, n_days, n_outcomes = counts.shape
 
+    # Fold censored into killed_M6_no_advance per the methodology decision.
+    # Censored particles share the same situation as killed_M6 (alive at end
+    # of tracking, no detected sea-ice advance event); the only distinction
+    # is that censored marks the subset whose classification is provisional
+    # because SIC was rising at the cutoff. We treat them as a subcategory
+    # of killed_M6 in the figure; the breakdown lives in the SI.
+    censored_idx = outcome_names.index("censored")
+    m6_idx = outcome_names.index("killed_M6_no_advance")
+    counts[:, :, m6_idx] += counts[:, :, censored_idx]
+    counts[:, :, censored_idx] = 0
+
     # --- Climatological mean fractions ------------------------------------
     # For each (year, season_day) cell, fraction = count / total.
     # Then average across years (only over cells with data).
@@ -120,23 +131,17 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
         warnings.simplefilter("ignore", category=RuntimeWarning)
         mean_fraction = np.nanmean(fractions, axis=0)       # (season_day, outcome)
 
-    # --- Drop negligible categories ---------------------------------------
-    # Use the dataset-wide mean fraction (counts summed over year & season_day,
-    # divided by total particles) to decide what to drop.
+    # --- All layers in the stack ------------------------------------------
     grand_total = counts.sum()
     overall_fraction_pct = 100.0 * counts.sum(axis=(0, 1)) / max(grand_total, 1)
     overall_by_name = dict(zip(outcome_names, overall_fraction_pct))
 
     print("Overall fractions (dataset-wide):")
     for name, pct in overall_by_name.items():
-        marker = "  (dropped)" if pct < DROP_THRESHOLD_PCT else ""
-        print(f"  {name:28s} {pct:6.3f}%{marker}")
-    print(f"  threshold for inclusion: {DROP_THRESHOLD_PCT}%")
+        print(f"  {name:28s} {pct:6.3f}%")
     print()
 
-    layers = [name for name in LAYER_ORDER if overall_by_name.get(name, 0) >= DROP_THRESHOLD_PCT]
-    if not layers:
-        raise RuntimeError("All layers below the drop threshold; nothing to plot.")
+    layers = list(LAYER_ORDER)
 
     # Killed_M* layers (chronologically ordered slice of `layers`).
     killed_layers = [n for n in layers if n.startswith("killed_M")]
