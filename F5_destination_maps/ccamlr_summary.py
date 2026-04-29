@@ -8,8 +8,16 @@ Subarea 48.6 is split at 60°S into northern and southern halves.
 
 Particles whose fate position is outside any CCAMLR project subarea
 (e.g. exported by ACC eastward outflow, or northern leakage past the
-project boundary) are reported in an "outside" column. Identical structure
-to F4's ccamlr_summary.py.
+project boundary) are reported in an "outside" column.
+
+Produces two outputs:
+  - stdout: a formatted table for human reading.
+  - ccamlr_summary.csv (sibling of this script): wide-format CSV for SI
+    Table S2, with rows = outcomes and columns = subareas. The CSV is
+    committed to the repo (it is a small, stable text artifact, unlike
+    the gitignored aggregated.nc grid).
+
+Identical structure to F4's ccamlr_summary.py.
 
 Usage:
   python ccamlr_summary.py
@@ -21,6 +29,7 @@ Assumes:
 
 from __future__ import annotations
 
+import csv
 import os
 import sys
 from pathlib import Path
@@ -173,11 +182,24 @@ def per_fate_per_subarea(
     return result
 
 
+def to_percent_table(per_fate: dict[str, dict[str, int]]) -> dict[str, dict[str, float]]:
+    """Convert raw counts to within-outcome percentages."""
+    pct: dict[str, dict[str, float]] = {}
+    for oname, row in per_fate.items():
+        total = sum(row.values())
+        pct[oname] = (
+            {k: 100.0 * v / total for k, v in row.items()}
+            if total > 0
+            else {k: 0.0 for k in row}
+        )
+    return pct
+
+
 # ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
-def print_summary(per_fate: dict[str, dict[str, int]],
+def print_summary(pct_table: dict[str, dict[str, float]],
                   outcome_names: list[str],
                   figure_label: str) -> None:
     """Print the per-fate, per-subarea breakdown to stdout."""
@@ -192,16 +214,10 @@ def print_summary(per_fate: dict[str, dict[str, int]],
     print("-" * len(header))
 
     for oname in DISPLAY_ORDER:
-        if oname not in outcome_names:
+        if oname not in outcome_names or oname not in pct_table:
             continue
-        if oname not in per_fate:
-            continue
-        row = per_fate[oname]
-        total = sum(row.values())
-        if total == 0:
-            cells = " ".join(f"{0.0:7.2f}" for _ in cols)
-        else:
-            cells = " ".join(f"{100.0 * row[c] / total:7.2f}" for c in cols)
+        row = pct_table[oname]
+        cells = " ".join(f"{row[c]:7.2f}" for c in cols)
         print(f"{DISPLAY_LABELS.get(oname, oname):28s} {cells}")
 
     print()
@@ -211,6 +227,39 @@ def print_summary(per_fate: dict[str, dict[str, int]],
             print(f"  {code:7s} : outside CCAMLR project subareas")
         else:
             print(f"  {code:7s} : {SUBAREA_NAMES.get(code, '?')}")
+
+
+def write_csv(pct_table: dict[str, dict[str, float]],
+              outcome_names: list[str],
+              csv_path: Path,
+              figure_label: str) -> None:
+    """
+    Write the per-fate × per-subarea percentage table as a wide-format CSV.
+
+    Rows are outcomes (in DISPLAY_ORDER), columns are subareas + "outside".
+    Includes a header comment line identifying the source figure and the
+    convention (within-outcome percentages, rows sum to 100).
+    """
+    cols = REPORT_ORDER + ["outside"]
+    with csv_path.open("w", newline="") as fh:
+        writer = csv.writer(fh)
+        # Comment header, prefixed with '#'. Most CSV readers will treat
+        # the first non-comment row as the header. Pandas can ingest this
+        # via pd.read_csv(..., comment='#').
+        writer.writerow([
+            f"# {figure_label}: per-fate breakdown by CCAMLR subarea "
+            f"(within-outcome %, rows sum to 100)"
+        ])
+        writer.writerow(["Outcome"] + cols)
+        for oname in DISPLAY_ORDER:
+            if oname not in outcome_names or oname not in pct_table:
+                continue
+            row = pct_table[oname]
+            writer.writerow(
+                [DISPLAY_LABELS.get(oname, oname)]
+                + [f"{row[c]:.2f}" for c in cols]
+            )
+    print(f"Wrote {csv_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -238,7 +287,12 @@ def main():
 
     counts = fold_outcomes(counts, outcome_names)
     per_fate = per_fate_per_subarea(counts, cell_labels, outcome_names)
-    print_summary(per_fate, outcome_names, figure_label="F5 (fate positions)")
+    pct_table = to_percent_table(per_fate)
+
+    figure_label = "F5 (fate positions)"
+    print_summary(pct_table, outcome_names, figure_label=figure_label)
+    write_csv(pct_table, outcome_names, here / "ccamlr_summary.csv",
+              figure_label=figure_label)
 
 
 if __name__ == "__main__":
