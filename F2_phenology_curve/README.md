@@ -6,9 +6,11 @@ Headline figure for KRICO Paper 1: 32-year climatological mean recruitment succe
 
 - Aggregates over all source regions (no spatial decomposition).
 - Aggregates over all 32 spawning years (1994–2025).
-- Y-axis: success rate (%).
+- Y-axis: recruitment success rate (%).
 - X-axis: release date, Nov 15 → Mar 14.
 - Annotation: climatological peak day.
+
+Recruitment success is defined as the fraction of released particles reaching the furcilia IV (FIV) larval stage on shelf-slope (bathymetry < 2000 m) at the moment of sea-ice advance. See `../METHODOLOGY.md` §2.2 for the full classification.
 
 Feb 29 cohorts are excluded from the climatology to keep the season-day grid uniformly 121 days across leap and non-leap years.
 
