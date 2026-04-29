@@ -4,7 +4,7 @@ F4 plot: source maps by fate.
 Reads data/aggregated.nc and produces source_maps.png:
   - 3 × 2 grid of polar-stereographic maps, one panel per outcome.
   - Success in top-left, then five killed_M* panels.
-  - Two colormaps echoing F3: Greens (success), Reds (5 killed).
+  - Two colormaps echoing F3: Greens (success), Reds (5 mortality).
   - Two shared colorbars at the bottom, centered.
 
 Censored particles are folded into killed_M6_no_advance at plot time
@@ -64,13 +64,16 @@ PANEL_LAYOUT = [
     ("killed_M6_no_advance",   (2, 1)),
 ]
 
+# Panel labels (per METHODOLOGY.md §2.7 manuscript convention, with M5a/M5b
+# abbreviated for compactness — full "at sea-ice advance" definitions live
+# in §2.2 prose and the caption, with the M-code connecting them).
 PANEL_LABELS = {
-    "success":                "Success",
-    "killed_M1":              "Killed: M1 (no spawning)",
-    "killed_M4":              "Killed: M4 (calyptope starvation)",
-    "killed_M5_no_FIV":       "Killed: M5 (no FIV)",
-    "killed_M5_not_on_shelf": "Killed: M5 (off-shelf)",
-    "killed_M6_no_advance":   "Killed: M6 (no advance)",
+    "success":                "Recruitment success",
+    "killed_M1":              "Ice at spawning (M1)",
+    "killed_M4":              "Calyptope starvation (M4)",
+    "killed_M5_no_FIV":       "Under-developed (M5a)",
+    "killed_M5_not_on_shelf": "Off-shelf (M5b)",
+    "killed_M6_no_advance":   "No winter ice (M6)",
 }
 
 # Color group per outcome; determines colormap and shared scale.
@@ -88,9 +91,10 @@ CMAPS = {
     "killed":  "Reds",
 }
 
+# Colorbar labels (manuscript convention: success vs mortality).
 GROUP_LABELS = {
-    "success": "Success",
-    "killed":  "Killed",
+    "success": "Recruitment success",
+    "killed":  "Mortality",
 }
 
 # Percentile used to set per-group vmax. Clipping at the 99th percentile
