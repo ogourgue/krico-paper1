@@ -4,7 +4,7 @@ F1 plot: domain map.
 Method figure showing:
   - the computational domain extent (dashed gray boundary),
   - the bathymetry-defined spawning zone (1000-2000 m, blue fill),
-  - the shelf recruitment zone (<1000 m, orange fill),
+  - the continental shelf (<1000 m, orange fill),
   - CCAMLR Subareas 48.1-48.6 and 88.3 (light gray outlines + framed labels),
   - cartopy land + coastlines.
 
@@ -213,7 +213,7 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     setup_polar_axes(ax)
 
     # Bathymetry zones at zorder=1 (below boundaries and land).
-    # Spawning zone in C0 (blue), shelf recruitment zone in C1 (orange).
+    # Spawning zone in C0 (blue), continental shelf in C1 (orange).
     ax.contourf(
         nav_lon, nav_lat, spawning,
         levels=[SPAWNING_MIN, SPAWNING_MAX],
@@ -253,7 +253,7 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     )
     shelf_patch = mpatches.Patch(
         facecolor="C1", alpha=0.5, edgecolor="none",
-        label="Shelf recruitment zone (<1000 m)",
+        label="Continental shelf (<1000 m)",
     )
     legend_zones = ax.legend(
         handles=[domain_patch, spawning_patch, shelf_patch],
@@ -261,7 +261,7 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
         framealpha=1.0,
     )
 
-    # Legend 2 (upper left): CCAMLR subarea code -> geographic name.
+    # Legend 2 (lower left): CCAMLR subarea code -> geographic name.
     # Code-only labels with no handle, so the legend is a clean two-column
     # mapping table rather than a list of duplicate "none" patches.
     area_handles = [
