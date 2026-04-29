@@ -8,6 +8,11 @@ Method figure showing:
   - CCAMLR Subareas 48.1-48.6 and 88.3 (light gray outlines + framed labels),
   - cartopy land + coastlines.
 
+Subarea 48.6 is split at 60°S for the spatial analyses in F4/F5
+(48.6N north of 60°S, 48.6S south of 60°S). The split is visualized
+here with a dashed gray line within the 48.6 polygon and two separate
+centroid labels. The rationale for the split lives in the F1 caption.
+
 Style aligned with F4 / F5: South Polar Stereographic projection,
 Arial 9 pt, light-gray boundaries (`"0.7"`), axis spines pushed above
 land/coastlines, panel margins via subplots_adjust.
@@ -28,6 +33,8 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+from shapely.geometry import LineString, box
+from shapely.ops import unary_union
 
 
 # ---------------------------------------------------------------------------
@@ -52,21 +59,33 @@ LON_MIN, LON_MAX = -115.0, 40.0
 LAT_MIN, LAT_MAX = -78.0, -40.0
 
 # CCAMLR statistical areas covered, with full geographic names for the legend.
+# 48.6 is split at 60°S for spatial analyses (F4/F5); the legend uses the
+# compact "Bouvet Island (North)" / "(South)" form. The 60°S split rationale
+# lives in the F1 caption.
 CCAMLR_AREA_NAMES = {
     "48.1": "Antarctic Peninsula",
     "48.2": "South Orkney Islands",
     "48.3": "South Georgia",
     "48.4": "South Sandwich Islands",
     "48.5": "Weddell Sea",
-    "48.6": "Bouvet Island",
+    "48.6N": "Bouvet Island (North)",
+    "48.6S": "Bouvet Island (South)",
     "88.3": "Amundsen Sea",
 }
-CCAMLR_AREAS = list(CCAMLR_AREA_NAMES.keys())
+# Underlying CCAMLR codes in the shapefile (48.6 unsplit).
+CCAMLR_AREAS = ["48.1", "48.2", "48.3", "48.4", "48.5", "48.6", "88.3"]
 
 # Bathymetry depth thresholds for the two zones (meters).
 SHELF_MAX = 1000.0
 SPAWNING_MIN = 1000.0
 SPAWNING_MAX = 2000.0
+
+# Latitude split for 48.6 (consistent with F4/F5 ccamlr_summary.py).
+SPLIT_LAT_486 = -60.0
+
+# Number of points used to densify the 60°S divider line so it follows the
+# parallel as a smooth curve when rendered in South Polar Stereographic.
+N_DIVIDER_POINTS = 200
 
 # Cartopy projection (matches F4 / F5).
 PROJECTION = ccrs.SouthPolarStereo(central_longitude=-37.5)
@@ -135,6 +154,22 @@ def load_ccamlr_geometries() -> gpd.GeoDataFrame:
     return ccamlr[ccamlr["GAR_Long_L"].isin(CCAMLR_AREAS)]
 
 
+def split_486(geom_486):
+    """
+    Split the 48.6 polygon at 60°S into northern and southern halves.
+
+    Returns (north_half, south_half) as shapely geometries. Either may be
+    a Polygon or MultiPolygon depending on the original 48.6 shape.
+    """
+    minx, miny, maxx, maxy = geom_486.bounds
+    pad = 1.0  # degrees
+    north_box = box(minx - pad, SPLIT_LAT_486, maxx + pad, maxy + pad)
+    south_box = box(minx - pad, miny - pad, maxx + pad, SPLIT_LAT_486)
+    north_half = geom_486.intersection(north_box)
+    south_half = geom_486.intersection(south_box)
+    return north_half, south_half
+
+
 def add_ccamlr_outlines(ax, ccamlr: gpd.GeoDataFrame) -> None:
     """Plot CCAMLR area boundaries (plain light-gray lines)."""
     for _, row in ccamlr.iterrows():
@@ -144,6 +179,56 @@ def add_ccamlr_outlines(ax, ccamlr: gpd.GeoDataFrame) -> None:
             facecolor="none",
             edgecolor="0.7",
             linewidth=mpl.rcParams["axes.linewidth"],
+            zorder=2,
+        )
+
+
+def add_486_split_line(ax, ccamlr: gpd.GeoDataFrame) -> None:
+    """
+    Draw a dotted gray line at 60°S inside the 48.6 polygon, marking the
+    split between 48.6N and 48.6S used in F4/F5 spatial analyses.
+
+    The line is densified (N_DIVIDER_POINTS along the lon span) so that
+    when rendered on the South Polar Stereographic projection it follows
+    the curved 60°S parallel rather than a chord. It is then clipped to
+    the 48.6 polygon so it does not extend past the subarea boundary.
+    Dotted style distinguishes this internal subdivision from the dashed
+    style used for the external computational domain boundary.
+    """
+    rows = ccamlr[ccamlr["GAR_Long_L"] == "48.6"]
+    if rows.empty:
+        return
+    geom_486 = unary_union(rows.geometry.values)
+
+    # Build a densified horizontal line at 60°S spanning the full lon range
+    # of 48.6, with a small pad so clipping by the polygon does not miss
+    # the polygon boundary.
+    minx, _, maxx, _ = geom_486.bounds
+    pad = 1.0
+    lons = np.linspace(minx - pad, maxx + pad, N_DIVIDER_POINTS)
+    coords = list(zip(lons, np.full_like(lons, SPLIT_LAT_486)))
+    full_line = LineString(coords)
+
+    # Clip to the 48.6 polygon. The result may be a MultiLineString if the
+    # polygon is multi-part or non-convex (the line exits and re-enters).
+    clipped = full_line.intersection(geom_486)
+    if clipped.is_empty:
+        return
+
+    if hasattr(clipped, "geoms"):
+        segments = list(clipped.geoms)
+    else:
+        segments = [clipped]
+    for seg in segments:
+        if not isinstance(seg, LineString):
+            continue
+        xs, ys = seg.xy
+        ax.plot(
+            list(xs), list(ys),
+            color="0.7",
+            linestyle=":",
+            linewidth=mpl.rcParams["axes.linewidth"],
+            transform=DATA_TRANSFORM,
             zorder=2,
         )
 
@@ -175,17 +260,37 @@ def add_domain_boundary(ax) -> None:
 
 def add_ccamlr_labels(ax, ccamlr: gpd.GeoDataFrame) -> None:
     """Plot CCAMLR area code labels at polygon centroids, in semi-transparent
-    framed boxes (so the underlying polygon and bathymetry remain visible)."""
+    framed boxes (so the underlying polygon and bathymetry remain visible).
+
+    Subarea 48.6 gets two labels (48.6N, 48.6S) at the centroids of its
+    two halves split at 60°S.
+    """
     bbox = make_label_bbox(alpha=0.7)
     for _, row in ccamlr.iterrows():
-        centroid = row.geometry.centroid
-        ax.text(
-            centroid.x, centroid.y, row["GAR_Long_L"],
-            transform=DATA_TRANSFORM,
-            ha="center", va="center",
-            bbox=bbox,
-            zorder=10,
-        )
+        code = row["GAR_Long_L"]
+        if code == "48.6":
+            north_half, south_half = split_486(row.geometry)
+            for half_geom, half_label in [(north_half, "48.6N"),
+                                          (south_half, "48.6S")]:
+                if half_geom.is_empty:
+                    continue
+                centroid = half_geom.centroid
+                ax.text(
+                    centroid.x, centroid.y, half_label,
+                    transform=DATA_TRANSFORM,
+                    ha="center", va="center",
+                    bbox=bbox,
+                    zorder=10,
+                )
+        else:
+            centroid = row.geometry.centroid
+            ax.text(
+                centroid.x, centroid.y, code,
+                transform=DATA_TRANSFORM,
+                ha="center", va="center",
+                bbox=bbox,
+                zorder=10,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -234,6 +339,7 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     # Boundaries.
     ccamlr = load_ccamlr_geometries()
     add_ccamlr_outlines(ax, ccamlr)
+    add_486_split_line(ax, ccamlr)
     add_domain_boundary(ax)
 
     # CCAMLR labels (above land, above coastlines).
