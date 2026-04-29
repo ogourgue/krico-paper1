@@ -9,6 +9,9 @@ Reads data/aggregated.nc and produces outcome_composition.png:
     same "alive at end of tracking, no advance detected" condition; censored
     is the subset where SIC was rising at the cutoff, classification
     provisional). The killed_M6 vs censored breakdown lives in the SI.
+  - Domain-exit particles are kept as a thin noise-floor band at the bottom
+    so the stack sums to 100% — this is a modeling-domain limitation, not
+    a biological outcome.
 """
 
 from __future__ import annotations
@@ -53,15 +56,18 @@ LAYER_ORDER = [
     "success",
 ]
 
-# Pretty labels for the legend.
+# Manuscript labels for the legend (per METHODOLOGY.md §2.7).
+# Plain-English name first; M-code in parentheses where applicable.
+# `success` becomes "Recruitment success" (no M-code); `exited_domain`
+# becomes "Domain exit" (no M-code).
 LAYER_LABELS = {
-    "killed_M1": "Killed: M1 (no spawning)",
-    "killed_M4": "Killed: M4 (calyptope starvation)",
-    "killed_M5_no_FIV": "Killed: M5 (no FIV)",
-    "killed_M5_not_on_shelf": "Killed: M5 (off-shelf)",
-    "killed_M6_no_advance": "Killed: M6 (no advance)",
-    "exited_domain": "Exited domain",
-    "success": "Success",
+    "exited_domain":          "Domain exit",
+    "killed_M1":              "Ice at spawning (M1)",
+    "killed_M4":              "Calyptope starvation (M4)",
+    "killed_M5_no_FIV":       "Under-developed (M5a)",
+    "killed_M5_not_on_shelf": "Off-shelf (M5b)",
+    "killed_M6_no_advance":   "No winter ice (M6)",
+    "success":                "Recruitment success",
 }
 
 
