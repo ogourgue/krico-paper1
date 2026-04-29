@@ -1,5 +1,5 @@
 """
-F2 aggregation: 30-year (year, season_day) success rate for the phenology curve.
+F2 aggregation: 32-year (year, season_day) success rate for the phenology curve.
 
 Reads per-particle recruitment outcomes from all cohort files in the
 recruitment data directory and aggregates to a (year, season_day) grid:
@@ -105,6 +105,23 @@ def season_day_index(year: int, month: int, day: int, spawning_year: int) -> int
     if idx < 0 or idx >= N_SEASON_DAYS:
         return None
     return idx
+
+
+def season_day_to_label(day: int) -> str:
+    """Calendar label for a season day index (e.g., 0 -> 'Nov 15', 47 -> 'Jan 1').
+
+    Mirrors the helper in plot.py — kept local here so the aggregate script
+    is self-contained for printing summary statistics.
+    """
+    if day <= 15:
+        return f"Nov {15 + day}"
+    if day <= 46:                                  # Dec 1 .. Dec 31
+        return f"Dec {day - 15}"
+    if day <= 77:                                  # Jan 1 .. Jan 31
+        return f"Jan {day - 46}"
+    if day <= 105:                                 # Feb 1 .. Feb 28
+        return f"Feb {day - 77}"
+    return f"Mar {day - 105}"                      # Mar 1 .. Mar 15
 
 
 # ---------------------------------------------------------------------------
@@ -216,6 +233,130 @@ def aggregate(data_dir: Path) -> xr.Dataset:
 
 
 # ---------------------------------------------------------------------------
+# Summary statistics for the manuscript Results section
+# ---------------------------------------------------------------------------
+
+def print_summary_stats(ds: xr.Dataset) -> None:
+    """
+    Print extended summary statistics used in the manuscript Results section.
+
+    Computes climatological mean curve, peak, season endpoints, per-year
+    peak distribution, per-year season-mean variability, and the width of
+    the optimal release window. Suppresses the all-NaN warnings that come
+    from cohorts missing across all years (e.g. Nov 31, Feb 30).
+    """
+    import warnings
+
+    sr_pct = ds["success_rate"].values * 100.0   # (year, season_day), in %
+    has_data = ds["has_data"].values
+    sr_pct = np.where(has_data, sr_pct, np.nan)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+
+        # Climatological curve (mean across years for each season_day).
+        mean_per_day = np.nanmean(sr_pct, axis=0)
+        p5_per_day = np.nanpercentile(sr_pct, 5, axis=0)
+        p95_per_day = np.nanpercentile(sr_pct, 95, axis=0)
+        std_per_day = np.nanstd(sr_pct, axis=0)
+
+        # Climatological peak.
+        peak_idx = int(np.nanargmax(mean_per_day))
+        peak_mean = float(mean_per_day[peak_idx])
+        peak_p5 = float(p5_per_day[peak_idx])
+        peak_p95 = float(p95_per_day[peak_idx])
+        peak_std = float(std_per_day[peak_idx])
+        peak_label = season_day_to_label(peak_idx)
+
+        print()
+        print("=" * 60)
+        print("Climatological mean curve (32-year mean by season day):")
+        print("=" * 60)
+        print(f"  Peak:  season_day {peak_idx} ({peak_label})  "
+              f"mean {peak_mean:.2f}%  envelope [{peak_p5:.2f}%, {peak_p95:.2f}%]  "
+              f"std {peak_std:.2f}%")
+
+        # Season endpoints — handle missing cohorts (e.g. Nov 31 if mislabeled
+        # as season_day 16) by using the first/last sd with non-NaN mean.
+        valid_sd = np.where(~np.isnan(mean_per_day))[0]
+        first_sd, last_sd = int(valid_sd[0]), int(valid_sd[-1])
+        for label, sd in [("First (Nov 15)", first_sd),
+                          ("Last  (Mar 14)", last_sd)]:
+            print(f"  {label}: sd {sd:3d} ({season_day_to_label(sd)})  "
+                  f"mean {mean_per_day[sd]:.2f}%  "
+                  f"envelope [{p5_per_day[sd]:.2f}%, {p95_per_day[sd]:.2f}%]")
+
+        # Width of the optimal release window.
+        for frac in (0.90, 0.75, 0.50):
+            threshold = frac * peak_mean
+            above = mean_per_day >= threshold
+            if above.any():
+                first = int(np.argmax(above))
+                # last True index, scanning from the right.
+                last = len(above) - 1 - int(np.argmax(above[::-1]))
+                width = last - first + 1
+                print(f"  Window mean >= {frac*100:.0f}% of peak ({threshold:.2f}%): "
+                      f"sd {first}-{last} ({season_day_to_label(first)} to "
+                      f"{season_day_to_label(last)}), {width} days")
+
+        # Per-year peak day & per-year peak value.
+        # We mask all-NaN year rows out of nanargmax to avoid errors.
+        years_with_any_data = np.any(~np.isnan(sr_pct), axis=1)
+        peak_day_per_year = np.full(N_YEARS, -1, dtype=int)
+        peak_val_per_year = np.full(N_YEARS, np.nan)
+        for i in range(N_YEARS):
+            if years_with_any_data[i]:
+                peak_day_per_year[i] = int(np.nanargmax(sr_pct[i]))
+                peak_val_per_year[i] = float(np.nanmax(sr_pct[i]))
+
+        valid_years = years_with_any_data
+        pd_valid = peak_day_per_year[valid_years]
+        pv_valid = peak_val_per_year[valid_years]
+
+        print()
+        print("=" * 60)
+        print(f"Per-year peak day distribution ({valid_years.sum()} years):")
+        print("=" * 60)
+        pd_min, pd_max = int(np.min(pd_valid)), int(np.max(pd_valid))
+        pd_p25, pd_p50, pd_p75 = np.percentile(pd_valid, [25, 50, 75])
+        print(f"  earliest peak: sd {pd_min} ({season_day_to_label(pd_min)})  "
+              f"in year {SPAWNING_YEARS[np.where(valid_years)[0][np.argmin(pd_valid)]]}")
+        print(f"  latest peak:   sd {pd_max} ({season_day_to_label(pd_max)})  "
+              f"in year {SPAWNING_YEARS[np.where(valid_years)[0][np.argmax(pd_valid)]]}")
+        print(f"  P25 peak:      sd {int(pd_p25)} ({season_day_to_label(int(pd_p25))})")
+        print(f"  P50 peak:      sd {int(pd_p50)} ({season_day_to_label(int(pd_p50))})")
+        print(f"  P75 peak:      sd {int(pd_p75)} ({season_day_to_label(int(pd_p75))})")
+        print(f"  inter-quartile range: {int(pd_p75) - int(pd_p25)} days")
+
+        print()
+        print("=" * 60)
+        print("Per-year peak value (best release date per year):")
+        print("=" * 60)
+        worst_year_idx = np.where(valid_years)[0][int(np.argmin(pv_valid))]
+        best_year_idx = np.where(valid_years)[0][int(np.argmax(pv_valid))]
+        print(f"  min:  {np.min(pv_valid):.2f}% in year {SPAWNING_YEARS[worst_year_idx]}")
+        print(f"  max:  {np.max(pv_valid):.2f}% in year {SPAWNING_YEARS[best_year_idx]}")
+        print(f"  mean: {np.mean(pv_valid):.2f}%")
+        print(f"  std:  {np.std(pv_valid):.2f}%")
+
+        # Per-year season-mean recruitment success.
+        year_means = np.nanmean(sr_pct, axis=1)
+        ym_valid = year_means[valid_years]
+        worst_seasonal = np.where(valid_years)[0][int(np.argmin(ym_valid))]
+        best_seasonal = np.where(valid_years)[0][int(np.argmax(ym_valid))]
+
+        print()
+        print("=" * 60)
+        print("Per-year season-mean recruitment success:")
+        print("=" * 60)
+        print(f"  min:  {np.min(ym_valid):.2f}% in year {SPAWNING_YEARS[worst_seasonal]}")
+        print(f"  max:  {np.max(ym_valid):.2f}% in year {SPAWNING_YEARS[best_seasonal]}")
+        print(f"  mean: {np.mean(ym_valid):.2f}%")
+        print(f"  std:  {np.std(ym_valid):.2f}%")
+        print(f"  best/worst ratio: {np.max(ym_valid) / max(np.min(ym_valid), 1e-9):.2f}x")
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -253,6 +394,9 @@ def main():
     print(f"  success rate: min {np.nanmin(sr_valid):.3f}, "
           f"mean {np.nanmean(sr_valid):.3f}, "
           f"max {np.nanmax(sr_valid):.3f}")
+
+    # Extended statistics for the Results section.
+    print_summary_stats(ds)
 
 
 if __name__ == "__main__":
