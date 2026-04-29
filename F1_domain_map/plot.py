@@ -68,8 +68,8 @@ CCAMLR_AREA_NAMES = {
     "48.3": "South Georgia",
     "48.4": "South Sandwich Islands",
     "48.5": "Weddell Sea",
-    "48.6N": "Bouvet Island (North)",
-    "48.6S": "Bouvet Island (South)",
+    "48.6N": "Northern Bouvet",
+    "48.6S": "Southern Bouvet",
     "88.3": "Amundsen Sea",
 }
 # Underlying CCAMLR codes in the shapefile (48.6 unsplit).
