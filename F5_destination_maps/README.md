@@ -34,16 +34,27 @@ Identical to F4 (see `../F4_source_maps/README.md`):
 
 F5's color scale is independent of F4's. Source positions are constrained to the narrow bathymetric release zone (1000–2000 m), while destinations spread across the entire domain — the inherent dynamic range differs, so each figure is normalized to its own data.
 
+## Per-CCAMLR-subarea breakdown
+
+The companion utility `ccamlr_summary.py` (mirroring F4's) reads the gridded `data/aggregated.nc` and computes a per-fate × per-CCAMLR-subarea breakdown of fate positions. Subarea 48.6 is split at 60°S into Northern Bouvet (48.6N) and Southern Bouvet (48.6S) — see `../METHODOLOGY.md` §0 for the rationale. The script writes:
+
+- A formatted table to stdout (per-fate columns × per-subarea rows, percentages summing to 100% within each fate).
+- `ccamlr_summary.csv` — wide-format CSV with the same data, `#`-prefixed comment header. **Committed to the repo as the source for SI Table S2.**
+
+The "outside" column captures particles whose fate position falls outside any CCAMLR project subarea. Unlike F4 (where this column is essentially zero by construction), in F5 the column carries real signal — most notably for M6, where 28% of particles end outside the CCAMLR network reflecting eastward ACC export, and for `exited_domain`, where the column collects particles deleted at the domain boundary.
+
 ## Files
 
 - `aggregate.py` — reads recruitment cohort NetCDFs, computes per-outcome 2D density on a 1° × 1° grid using `final_lon` / `final_lat`, writes `data/aggregated.nc`.
 - `plot.py` — reads `data/aggregated.nc`, folds censored into `killed_M6`, writes `destination_maps.png`.
+- `ccamlr_summary.py` — reads `data/aggregated.nc`, computes per-fate × per-subarea fate-position breakdown, writes `ccamlr_summary.csv` (committed) and prints the same data to stdout.
 
 ## Run
 
 ```bash
 python aggregate.py
 python plot.py
+python ccamlr_summary.py
 ```
 
-Both scripts assume `$KRICO_ROOT` is set and that the recruitment pipeline output exists at the expected location.
+All scripts assume `$KRICO_ROOT` is set and that the recruitment pipeline output exists at the expected location.
