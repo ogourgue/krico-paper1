@@ -19,7 +19,10 @@ Multi-panel grid of release-position concentration maps, one panel per outcome. 
 - **Two colorbars** at the bottom of the figure, one per color group, centered. Labels: "Recruitment success density" (under col 0) and "Mortality density" (under col 1).
 - **Panel labels:** combined letter + fate name in a framed box, upper-right. Manuscript labeling convention from `../METHODOLOGY.md` §2.7: plain-English name first, M-code in parentheses (e.g., "Calyptope starvation (M4)"). M5a and M5b are abbreviated to "Under-developed (M5a)" and "Off-shelf (M5b)" for compactness.
 - Coastlines + gray land fill via cartopy NaturalEarth.
-- CCAMLR subarea outlines (light gray) and model domain boundary (dashed light gray) overlaid.
+- **Boundary overlays** (linestyle convention consistent with F1):
+  - CCAMLR subarea outlines: plain light gray.
+  - 48.6 split at 60°S: dotted light gray — internal subdivision used in the per-CCAMLR-subarea breakdown (`ccamlr_summary.py`); densified to follow the curved parallel and clipped to the 48.6 polygon.
+  - Model computational domain: dashed light gray — external boundary.
 - Censored particles are folded into M6 at plot time (consistent with F3 and the methodology decision); they share the same end-of-tracking, no-advance condition. The `killed_M6` vs censored breakdown lives in the SI.
 - `exited_domain` is not shown — it is a modeling-domain limitation (~1% of particles dataset-wide). A spatial map is in the SI. (F3 retains it as a noise-floor band in the stacked-area for accounting completeness.)
 

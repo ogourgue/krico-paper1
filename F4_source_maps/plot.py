@@ -26,6 +26,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+from shapely.geometry import LineString
+from shapely.ops import unary_union
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +103,14 @@ GROUP_LABELS = {
 # brightens the bulk of the signal at the cost of saturating a few hotspot
 # cells.
 COLOR_PERCENTILE = 99.0
+
+# Latitude split for 48.6 (consistent with F1 and the F4/F5 ccamlr_summary
+# scripts): subarea 48.6 is reported as two halves split at 60°S.
+SPLIT_LAT_486 = -60.0
+
+# Number of points used to densify the 60°S divider line so it follows the
+# parallel as a smooth curve when rendered in South Polar Stereographic.
+N_DIVIDER_POINTS = 200
 
 # Cartopy projection (matches PoC F1).
 PROJECTION = ccrs.SouthPolarStereo(central_longitude=-37.5)
@@ -179,6 +189,57 @@ def load_ccamlr_geometries() -> gpd.GeoDataFrame:
     return ccamlr[ccamlr["GAR_Long_L"].isin(areas)]
 
 
+def add_486_split_line(ax, ccamlr: gpd.GeoDataFrame) -> None:
+    """
+    Draw a dotted gray line at 60°S inside the 48.6 polygon, marking the
+    split between 48.6N and 48.6S used in the F4/F5 spatial analyses
+    (consistent with F1).
+
+    The line is densified (N_DIVIDER_POINTS along the lon span) so that
+    when rendered on the South Polar Stereographic projection it follows
+    the curved 60°S parallel rather than a chord. It is then clipped to
+    the 48.6 polygon so it does not extend past the subarea boundary.
+    Dotted style distinguishes this internal subdivision from the dashed
+    style used for the external computational domain boundary.
+    """
+    rows = ccamlr[ccamlr["GAR_Long_L"] == "48.6"]
+    if rows.empty:
+        return
+    geom_486 = unary_union(rows.geometry.values)
+
+    # Build a densified horizontal line at 60°S spanning the full lon range
+    # of 48.6, with a small pad so clipping by the polygon does not miss
+    # the polygon boundary.
+    minx, _, maxx, _ = geom_486.bounds
+    pad = 1.0
+    lons = np.linspace(minx - pad, maxx + pad, N_DIVIDER_POINTS)
+    coords = list(zip(lons, np.full_like(lons, SPLIT_LAT_486)))
+    full_line = LineString(coords)
+
+    # Clip to the 48.6 polygon. The result may be a MultiLineString if the
+    # polygon is multi-part or non-convex (the line exits and re-enters).
+    clipped = full_line.intersection(geom_486)
+    if clipped.is_empty:
+        return
+
+    if hasattr(clipped, "geoms"):
+        segments = list(clipped.geoms)
+    else:
+        segments = [clipped]
+    for seg in segments:
+        if not isinstance(seg, LineString):
+            continue
+        xs, ys = seg.xy
+        ax.plot(
+            list(xs), list(ys),
+            color="0.7",
+            linestyle=":",
+            linewidth=mpl.rcParams["axes.linewidth"],
+            transform=DATA_TRANSFORM,
+            zorder=2,
+        )
+
+
 def add_overlays(ax, ccamlr: gpd.GeoDataFrame) -> None:
     """Add CCAMLR area outlines (plain) and model domain boundary (dashed).
 
@@ -194,6 +255,10 @@ def add_overlays(ax, ccamlr: gpd.GeoDataFrame) -> None:
             linewidth=mpl.rcParams["axes.linewidth"],
             zorder=2,
         )
+
+    # 48.6 split at 60°S: dotted light-gray line marking the 48.6N / 48.6S
+    # boundary used in the spatial analyses (consistent with F1).
+    add_486_split_line(ax, ccamlr)
 
     # Model domain boundary: dashed light-gray, densified for smooth polar curves.
     n = 100

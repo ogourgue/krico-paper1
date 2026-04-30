@@ -28,7 +28,10 @@ Identical to F4 (see `../F4_source_maps/README.md`):
 - **Two colorbars** at the bottom, labels "Recruitment success density" and "Mortality density", centered under their column.
 - **Panel labels:** combined letter + fate name in a framed box, upper-right; manuscript labeling convention with abbreviated M5a/M5b as in F4.
 - Coastlines + gray land fill via cartopy NaturalEarth.
-- CCAMLR subarea outlines (light gray) and model domain boundary (dashed light gray) overlaid.
+- **Boundary overlays** (linestyle convention consistent with F1):
+  - CCAMLR subarea outlines: plain light gray.
+  - 48.6 split at 60°S: dotted light gray — internal subdivision used in the per-CCAMLR-subarea breakdown (`ccamlr_summary.py`); densified to follow the curved parallel and clipped to the 48.6 polygon.
+  - Model computational domain: dashed light gray — external boundary.
 - Censored particles are folded into M6 at plot time (consistent with F3 and F4); they share the same end-of-tracking, no-advance condition. The `killed_M6` vs censored breakdown lives in the SI.
 - `exited_domain` is not shown — it is a modeling-domain limitation (~1% of particles dataset-wide). A spatial map is in the SI.
 
