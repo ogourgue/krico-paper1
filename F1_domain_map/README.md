@@ -7,10 +7,10 @@ Method figure showing the computational domain, the bathymetry-defined spawning 
 - **Computational domain:** 115°W to 40°E, 78°S to 40°S.
 - **Spawning zone:** bathymetry 1000–2000 m, masked to CCAMLR project subareas.
 - **Continental shelf:** bathymetry < 1000 m, masked to CCAMLR project subareas.
-- **CCAMLR Statistical Subareas shown:** 48.1, 48.2, 48.3, 48.4, 48.5, 48.6, 88.3. Subarea 48.6 spans a wide latitude range from the Antarctic shelf to the open Southern Ocean and is reported as two halves (48.6N, 48.6S) split at 60°S in the F4 / F5 spatial analyses; F1 visualizes this split. See `../METHODOLOGY.md` §0 for the rationale.
+- **CCAMLR Statistical Subareas shown:** 48.1, 48.2, 48.3, 48.4, 48.5, 48.6, 88.3. Subarea 48.6 spans a wide latitude range from the Antarctic shelf to the open Southern Ocean and is reported as two halves (48.6N, 48.6S) split at 60°S in the F4 / F5 spatial analyses; F1 visualizes this split.
 - Projection: South Polar Stereographic, central_longitude = −37.5°.
 
-The "continental shelf" naming (rather than "shelf recruitment zone") avoids conflation with the < 2000 m recruitment criterion used in M5b. The recruitment habitat is the combined shelf + slope (< 2000 m); F1 shows the shelf component alone for geographic context. See `../METHODOLOGY.md` §4 for the bathymetric vocabulary.
+The "continental shelf" naming (rather than "shelf recruitment zone") avoids conflation with the < 2000 m recruitment criterion used in M5b. The recruitment habitat is the combined shelf + slope (< 2000 m); F1 shows the shelf component alone for geographic context.
 
 ## Design
 

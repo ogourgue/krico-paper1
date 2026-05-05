@@ -17,7 +17,7 @@ Multi-panel grid of release-position concentration maps, one panel per outcome. 
   - `Reds` for the five mortality panels (shared colormap, comparable within the mortality group).
 - **Single shared vmax** across both colormaps, computed as the 99th percentile of all nonzero density cells pooled together.
 - **Two colorbars** at the bottom of the figure, one per color group, centered. Labels: "Recruitment success density" (under col 0) and "Mortality density" (under col 1).
-- **Panel labels:** combined letter + fate name in a framed box, upper-right. Manuscript labeling convention from `../METHODOLOGY.md` §2.7: plain-English name first, M-code in parentheses (e.g., "Calyptope starvation (M4)"). M5a and M5b are abbreviated to "Under-developed (M5a)" and "Off-shelf (M5b)" for compactness.
+- **Panel labels:** combined letter + fate name in a framed box, upper-right. Manuscript labeling convention: plain-English name first, M-code in parentheses (e.g., "Calyptope starvation (M4)"). M5a and M5b are abbreviated to "Under-developed (M5a)" and "Off-shelf (M5b)" for compactness.
 - Coastlines + gray land fill via cartopy NaturalEarth.
 - **Boundary overlays** (linestyle convention consistent with F1):
   - CCAMLR subarea outlines: plain light gray.
@@ -28,7 +28,7 @@ Multi-panel grid of release-position concentration maps, one panel per outcome. 
 
 ## Per-CCAMLR-subarea breakdown
 
-The companion utility `ccamlr_summary.py` reads the gridded `data/aggregated.nc` and computes a per-fate × per-CCAMLR-subarea breakdown. Subarea 48.6 is split at 60°S into Northern Bouvet (48.6N) and Southern Bouvet (48.6S) — see `../METHODOLOGY.md` §0 for the rationale. The script writes:
+The companion utility `ccamlr_summary.py` reads the gridded `data/aggregated.nc` and computes a per-fate × per-CCAMLR-subarea breakdown. Subarea 48.6 is split at 60°S into Northern Bouvet (48.6N) and Southern Bouvet (48.6S). The script writes:
 
 - A formatted table to stdout (per-fate columns × per-subarea rows, percentages summing to 100% within each fate).
 - `ccamlr_summary.csv` — wide-format CSV with the same data, `#`-prefixed comment header. **Committed to the repo as the source for SI Table S1.**

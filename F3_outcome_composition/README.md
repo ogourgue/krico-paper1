@@ -24,7 +24,7 @@ Feb 29 cohorts are excluded (consistent with F2).
 ## Design notes
 
 - Colors: `success` is matplotlib `C2` (green); the five `killed_M*` layers use a perceptually uniform gradient sampled from `YlOrRd`, lightest = earliest filter (M1), darkest = latest filter (M6_no_advance); `exited_domain` is a light gray (`"0.7"`).
-- Legend labels follow the manuscript convention from `../METHODOLOGY.md` §2.7: plain-English name first, M-code in parentheses (e.g., "Ice at spawning (M1)"). M5a and M5b are abbreviated to "Under-developed (M5a)" and "Off-shelf (M5b)" for legend compactness; full "at sea-ice advance" definitions remain in METHODOLOGY.md §2.2 and the figure caption, with the M-code connecting them.
+- Legend labels follow the manuscript convention: plain-English name first, M-code in parentheses (e.g., "Calyptope starvation (M4)"). M5a and M5b are abbreviated to "Under-developed (M5a)" and "Off-shelf (M5b)" for legend compactness; full "at sea-ice advance" definitions are in the figure caption, with the M-code connecting them.
 - No y-axis grid: grid lines compete with filled bands and would only show through the lightest layers, providing inconsistent reference. Y-values are read from band thicknesses, not axis position.
 - Legend inside, lower-left corner. The legend covers the early-season M1↔M4 boundary in a region where M1 dominates uniformly and the boundary is roughly horizontal — least informational cost of available placements. The upper-right would obscure the late-season M6 dominance and the success peak, both of which carry more of the paper's story.
 
