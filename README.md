@@ -1,8 +1,13 @@
-# KRICO Paper 1
+# KRICO: Paper 1
 
-Figures and analysis for KRICO Paper 1: *Spawning phenology and upstream connectivity jointly determine larval recruitment success in Antarctic krill*.
+Figures and analysis for KRICO Paper 1: *Spawning phenology and upstream connectivity jointly determine larval recruitment success in Antarctic krill*. Publication-ready visualizations of 32-year hindcast (1994–2025) larval dispersal outcomes and spatial connectivity across CCAMLR Areas 48 and 88.
 
-Each figure lives in its own self-contained subfolder with aggregation and plotting scripts.
+Author: Olivier Gourgue (RBINS)
+
+Related repositories:
+
+* __[krico-templates](https://github.com/ogourgue/krico-templates)__ — Simulation templates (Parcels + GLORYS12v1)
+* __[krico-post-production](https://github.com/ogourgue/krico-post-production)__ — Post-processing and recruitment classification pipeline
 
 ## Dependencies
 
