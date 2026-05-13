@@ -6,8 +6,8 @@ GLORYS12 grid. Doing it once and writing the masked field to NetCDF
 makes the plotting script fast for iterations.
 
 Inputs:
-  $KRICO_ROOT/Pre/glorys12/glorys12_bathymetry.nc
-  $KRICO_ROOT/Pre/ccamlr-data/geographical_data/asd/CCAMLR_ASD_EPSG4326.shp
+  $KRICO_GLORYS12/glorys12_bathymetry.nc
+  ccamlr-data/CCAMLR_ASD_EPSG4326.shp
 
 Output:
   data/aggregated.nc
@@ -106,20 +106,27 @@ def aggregate(bathy_path: Path, ccamlr_shp_path: Path) -> xr.Dataset:
 # ---------------------------------------------------------------------------
 
 def main():
-    krico_root = os.environ.get("KRICO_ROOT")
-    if not krico_root:
-        print("ERROR: KRICO_ROOT environment variable not set.", file=sys.stderr)
+    # Bathymetry: external dependency, set via KRICO_GLORYS12 env var.
+    # Only needed to re-run F1 aggregation from scratch; data/aggregated.nc
+    # is committed to the repo for figure reproduction without HPC access.
+    krico_glorys12 = os.environ.get("KRICO_GLORYS12")
+    if not krico_glorys12:
+        print(
+            "ERROR: KRICO_GLORYS12 environment variable not set.\n"
+            "Set it to the GLORYS12 preprocessing output directory, e.g.:\n"
+            "  export KRICO_GLORYS12=/path/to/Pre/GLORYS12",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    bathy_path = Path(krico_root) / "Pre" / "glorys12" / "glorys12_bathymetry.nc"
+    bathy_path = Path(krico_glorys12) / "glorys12_bathymetry.nc"
     if not bathy_path.exists():
         print(f"ERROR: bathymetry file not found: {bathy_path}", file=sys.stderr)
         sys.exit(1)
 
-    ccamlr_shp_path = (
-        Path(krico_root) / "Pre" / "ccamlr-data" / "geographical_data"
-        / "asd" / "CCAMLR_ASD_EPSG4326.shp"
-    )
+    # CCAMLR shapefile: bundled in the repo at ccamlr-data/.
+    repo_root = Path(__file__).resolve().parent.parent
+    ccamlr_shp_path = repo_root / "ccamlr-data" / "CCAMLR_ASD_EPSG4326.shp"
     if not ccamlr_shp_path.exists():
         print(f"ERROR: CCAMLR shapefile not found: {ccamlr_shp_path}", file=sys.stderr)
         sys.exit(1)

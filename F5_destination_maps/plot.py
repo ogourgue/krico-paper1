@@ -20,7 +20,6 @@ breakdown lives in the SI.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import cartopy.crs as ccrs
@@ -179,13 +178,8 @@ def setup_polar_axes(ax):
 
 def load_ccamlr_geometries() -> gpd.GeoDataFrame:
     """Load CCAMLR statistical area polygons for the project domain."""
-    krico_root = os.environ.get("KRICO_ROOT")
-    if not krico_root:
-        raise RuntimeError("KRICO_ROOT environment variable not set.")
-    shp_path = (
-        Path(krico_root) / "Pre" / "ccamlr-data" / "geographical_data"
-        / "asd" / "CCAMLR_ASD_EPSG4326.shp"
-    )
+    repo_root = Path(__file__).resolve().parent.parent
+    shp_path = repo_root / "ccamlr-data" / "CCAMLR_ASD_EPSG4326.shp"
     if not shp_path.exists():
         raise FileNotFoundError(f"CCAMLR shapefile not found: {shp_path}")
     ccamlr = gpd.read_file(shp_path)

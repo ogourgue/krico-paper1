@@ -10,7 +10,7 @@ Output is normalized within each outcome (densities sum to 1 across cells
 for each outcome): "of all particles that ended in this fate, this is the
 fractional spatial source distribution."
 
-Inputs:  $KRICO_ROOT/Post/Production/recruitment/data/YYYY_MM_DD.nc
+Inputs:  $KRICO_POST/recruitment/data/YYYY_MM_DD.nc
 Output:  data/aggregated.nc
 """
 
@@ -177,12 +177,17 @@ def aggregate(data_dir: Path) -> xr.Dataset:
 # ---------------------------------------------------------------------------
 
 def main():
-    krico_root = os.environ.get("KRICO_ROOT")
-    if not krico_root:
-        print("ERROR: KRICO_ROOT environment variable not set.", file=sys.stderr)
+    krico_post = os.environ.get("KRICO_POST")
+    if not krico_post:
+        print(
+            "ERROR: KRICO_POST environment variable not set.\n"
+            "Set it to the krico-post-production root directory, e.g.:\n"
+            "  export KRICO_POST=/path/to/krico-post-production",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    data_dir = Path(krico_root) / "Post" / "Production" / "recruitment" / "data"
+    data_dir = Path(krico_post) / "recruitment" / "data"
     if not data_dir.is_dir():
         print(f"ERROR: recruitment data dir not found: {data_dir}", file=sys.stderr)
         sys.exit(1)

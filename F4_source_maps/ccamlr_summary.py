@@ -24,7 +24,6 @@ Assumes:
 from __future__ import annotations
 
 import csv
-import os
 import sys
 from pathlib import Path
 
@@ -88,14 +87,9 @@ FOLD_INTO = {
 # ---------------------------------------------------------------------------
 
 def load_ccamlr_geometries() -> gpd.GeoDataFrame:
-    """Load CCAMLR statistical area polygons from the shapefile."""
-    krico_root = os.environ.get("KRICO_ROOT")
-    if not krico_root:
-        raise RuntimeError("KRICO_ROOT environment variable not set.")
-    shp_path = (
-        Path(krico_root) / "Pre" / "ccamlr-data" / "geographical_data"
-        / "asd" / "CCAMLR_ASD_EPSG4326.shp"
-    )
+    """Load CCAMLR statistical area polygons from the bundled shapefile."""
+    repo_root = Path(__file__).resolve().parent.parent
+    shp_path = repo_root / "ccamlr-data" / "CCAMLR_ASD_EPSG4326.shp"
     if not shp_path.exists():
         raise FileNotFoundError(f"CCAMLR shapefile not found: {shp_path}")
     ccamlr = gpd.read_file(shp_path)
