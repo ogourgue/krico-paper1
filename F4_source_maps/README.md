@@ -49,4 +49,4 @@ python plot.py
 python ccamlr_summary.py
 ```
 
-All scripts assume `$KRICO_ROOT` is set and that the recruitment pipeline output exists at the expected location.
+Running `aggregate.py` requires `$KRICO_POST` to be set; see the repo README.

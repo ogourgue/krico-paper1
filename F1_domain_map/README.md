@@ -43,8 +43,8 @@ In F1 (and consistent with the rest of the manuscript figures), gray lines disti
 
 ## Inputs (read by `aggregate.py`)
 
-- `$KRICO_ROOT/Pre/glorys12/glorys12_bathymetry.nc`
-- `$KRICO_ROOT/Pre/ccamlr-data/geographical_data/asd/CCAMLR_ASD_EPSG4326.shp`
+- `$KRICO_GLORYS12/glorys12_bathymetry.nc`
+- `ccamlr-data/CCAMLR_ASD_EPSG4326.shp` (bundled in repo)
 
 ## Run
 
