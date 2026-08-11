@@ -6,6 +6,8 @@ Method figure showing:
   - the bathymetry-defined spawning zone (1000-2000 m, blue fill),
   - the continental shelf (<1000 m, orange fill),
   - CCAMLR Subareas 48.1-48.6 and 88.3 (light gray outlines + framed labels),
+  - mean sea-ice edges for 1979-2015 and 2016-2025, in February and September
+    (black contours),
   - cartopy land + coastlines.
 
 Subarea 48.6 is split at 60°S for the spatial analyses in F4/F5
@@ -13,8 +15,19 @@ Subarea 48.6 is split at 60°S for the spatial analyses in F4/F5
 here with a dashed gray line within the 48.6 polygon and two separate
 centroid labels. The rationale for the split lives in the F1 caption.
 
+Each sea-ice edge is the 15% contour of a multi-year mean monthly concentration
+field (NOAA/NSIDC G02202 v6), contoured on its native grid with the same
+PlateCarree transform used for the bathymetry zones. Four contours are drawn:
+two months (February, the ice minimum; September, the maximum) by two periods.
+The period is encoded by colour and the month by linestyle, both in the legend --
+the panel reads as two nested envelopes, inner summer and outer winter.
+
+The edges are observed, independent of the GLORYS12 sea ice that forces the
+simulation; the caption states this too. Their purpose is illustrative context
+for the post-2016 low-extent regime, not analysis.
+
 Style aligned with F4 / F5: South Polar Stereographic projection,
-Arial 9 pt, light-gray boundaries (`"0.7"`), axis spines pushed above
+Arial 8 pt, light-gray boundaries (`"0.7"`), axis spines pushed above
 land/coastlines, panel margins via subplots_adjust.
 
 Reads data/aggregated.nc produced by aggregate.py.
@@ -32,6 +45,7 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+from matplotlib.lines import Line2D
 from shapely.geometry import LineString, box
 from shapely.ops import unary_union
 
@@ -42,7 +56,7 @@ from shapely.ops import unary_union
 
 mpl.rcParams.update({
     "font.family": "Arial",
-    "font.size": 9,
+    "font.size": 8,
     # PoC F1 used 6.5 × 3.3 for one panel of this domain extent — that's
     # the natural projected aspect we keep for F1.
     "figure.figsize": (6.5, 3.3),
@@ -79,6 +93,15 @@ SHELF_MAX = 1000.0
 SPAWNING_MIN = 1000.0
 SPAWNING_MAX = 2000.0
 
+# Label placement per subarea. "centroid" (the default) centres the label on the
+# polygon; "north" centres it on the polygon's northern boundary, at the
+# centroid longitude. 48.1 uses "north": its centroid falls on the narrow
+# western-Peninsula shelf, where the label would cover the bathymetry zones and
+# the sea-ice edges that converge there.
+CCAMLR_LABEL_ANCHORS = {
+    "48.1": "north",
+}
+
 # Latitude split for 48.6 (consistent with F4/F5 ccamlr_summary.py).
 SPLIT_LAT_486 = -60.0
 
@@ -86,14 +109,70 @@ SPLIT_LAT_486 = -60.0
 # parallel as a smooth curve when rendered in South Polar Stereographic.
 N_DIVIDER_POINTS = 200
 
+# Sea-ice edges: 15% concentration, matching the threshold used for per-particle
+# sea-ice advance detection in the recruitment classification. Drawn at the
+# shared line weight (axes.linewidth) and at alpha 0.7, so four contours sit
+# lightly behind the geographic scaffolding.
+#
+# Both dimensions are encoded, and both appear in the legend: colour for the
+# period, linestyle for the month. Inline contour labels were tried instead, to
+# keep the legend shorter, but matplotlib's automatic placement put them badly.
+# Four explicit entries cost legend height and buy unambiguity -- without the
+# month marked, four unlabelled lines invite reading the band between contours
+# as ice-free, when it is seasonally ice-covered, and the M6 argument in the
+# Discussion depends on the reader knowing which line is the winter edge.
+#
+# September is solid, February dashed. The sea-ice entries live in their own
+# titled legend, ordered north to south as the contours appear on the map: the
+# September edge lies furthest north, and within each month the earlier period
+# lies north of the recent one.
+SIC_THRESHOLD = 0.15
+SIC_ALPHA = 0.7
+SIC_COLORS = {
+    "1979-2015": "C2",
+    "2016-2025": "C3",
+}
+SIC_LINESTYLES = {
+    "February": "--",
+    "September": "-",
+}
+SIC_MONTH_LABELS = {"February": "Feb", "September": "Sep"}
+SIC_LEGEND_TITLE = "Sea-ice edge:"
+SIC_LEGEND_TITLE_WEIGHT = "normal"
+SIC_LEGEND_ORDER = [
+    ("September", "1979-2015"),
+    ("September", "2016-2025"),
+    ("February", "1979-2015"),
+    ("February", "2016-2025"),
+]
+# The sea-ice legend takes the remaining free corner: zones sit upper right,
+# subarea names lower left.
+SIC_LEGEND_LOC = "lower right"
+
+# Above the bathymetry fills (1), below the CCAMLR and domain boundaries (2).
+SIC_ZORDER = 1.5
+
+
 # Cartopy projection (matches F4 / F5).
 PROJECTION = ccrs.SouthPolarStereo(central_longitude=-37.5)
 DATA_TRANSFORM = ccrs.PlateCarree()
 
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def display_path(path: Path) -> str:
+    """Render a path repo-relative when it lies inside the repo, else absolute."""
+    path = Path(path).resolve()
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
 
 def resolve_legend_color(rc_key: str, axes_attr: str) -> str:
     """Resolve matplotlib's 'inherit' sentinel for legend colors."""
@@ -125,8 +204,9 @@ def setup_polar_axes(ax):
     """Configure a polar-stereographic axis with land + coastline.
 
     Zorder stack (bottom to top):
-      bathymetry fills (1) < CCAMLR + domain boundaries (2) < land (3) <
-      coastlines (4) < axis spines (5) < CCAMLR labels (10)
+      bathymetry fills (1) < sea-ice edges (1.5) < CCAMLR + domain
+      boundaries (2) < land (3) < coastlines (4) < axis spines (5) <
+      CCAMLR labels (10)
     """
     land = cfeature.NaturalEarthFeature(
         "physical", "land", "50m", facecolor="0.85", edgecolor="none"
@@ -140,8 +220,7 @@ def setup_polar_axes(ax):
 
 def load_ccamlr_geometries() -> gpd.GeoDataFrame:
     """Load CCAMLR statistical area polygons for the project domain."""
-    repo_root = Path(__file__).resolve().parent.parent
-    shp_path = repo_root / "ccamlr-data" / "CCAMLR_ASD_EPSG4326.shp"
+    shp_path = REPO_ROOT / "ccamlr-data" / "CCAMLR_ASD_EPSG4326.shp"
     if not shp_path.exists():
         raise FileNotFoundError(f"CCAMLR shapefile not found: {shp_path}")
     ccamlr = gpd.read_file(shp_path)
@@ -252,39 +331,100 @@ def add_domain_boundary(ax) -> None:
     )
 
 
+def add_sea_ice_edges(ax, ds: xr.Dataset) -> list[Line2D]:
+    """
+    Contour the mean sea-ice edge for each month and period.
+
+    The G02202 grid is circumpolar, but the map extent is a rectangle in
+    projected space that reaches beyond the 115W-40E domain -- so contouring the
+    full grid also draws the East Antarctic and Ross Sea ice edges, which appear
+    as spurious lines between the February and September contours. The field is
+    therefore masked to the domain before contouring, and each edge terminates
+    at the domain boundary.
+
+    Contouring is done on the native NSIDC grid with its 2-D lon/lat
+    coordinates; cartopy transforms the grid points, so the contour crosses the
+    antimeridian without artefacts.
+
+    Returns one proxy handle per month-period pair (four in total), ordered
+    north to south, since contour sets do not provide usable legend handles.
+    """
+    sic_lon = ds["sic_lon"].values
+    sic_lat = ds["sic_lat"].values
+    linewidth = mpl.rcParams["axes.linewidth"]
+
+    in_domain = (
+        (sic_lon >= LON_MIN) & (sic_lon <= LON_MAX)
+        & (sic_lat >= LAT_MIN) & (sic_lat <= LAT_MAX)
+    )
+
+    handles = {}
+    for month in [str(m) for m in ds["month"].values]:
+        linestyle = SIC_LINESTYLES.get(month, "-")
+        month_label = SIC_MONTH_LABELS.get(month, month)
+        for period in [str(p) for p in ds["period"].values]:
+            color = SIC_COLORS.get(period, "C2")
+            field = ds["sic_climatology"].sel(month=month, period=period).values
+            field = np.where(in_domain, field, np.nan)
+            ax.contour(
+                sic_lon, sic_lat, field,
+                levels=[SIC_THRESHOLD],
+                colors=[color],
+                linestyles=[linestyle],
+                linewidths=linewidth,
+                alpha=SIC_ALPHA,
+                transform=DATA_TRANSFORM,
+                zorder=SIC_ZORDER,
+            )
+            handles[(month, period)] = Line2D(
+                [], [],
+                color=color,
+                linestyle=linestyle,
+                linewidth=linewidth,
+                alpha=SIC_ALPHA,
+                label=f"{month_label} {period}",
+            )
+
+    # Emit in the configured north-to-south order, then anything left over, so
+    # an added month or period still reaches the legend.
+    ordered = [handles.pop(key) for key in SIC_LEGEND_ORDER if key in handles]
+    ordered.extend(handles.values())
+    return ordered
+
+
 def add_ccamlr_labels(ax, ccamlr: gpd.GeoDataFrame) -> None:
     """Plot CCAMLR area code labels at polygon centroids, in semi-transparent
     framed boxes (so the underlying polygon and bathymetry remain visible).
 
     Subarea 48.6 gets two labels (48.6N, 48.6S) at the centroids of its
-    two halves split at 60°S.
+    two halves split at 60°S. CCAMLR_LABEL_ANCHORS overrides placement where a
+    centroid falls somewhere the label would obscure the data.
     """
     bbox = make_label_bbox(alpha=0.7)
+
+    def place(geom, label: str) -> None:
+        if geom.is_empty:
+            return
+        centroid = geom.centroid
+        anchor = CCAMLR_LABEL_ANCHORS.get(label, "centroid")
+        # bounds = (minx, miny, maxx, maxy); maxy is the northern boundary.
+        lat = geom.bounds[3] if anchor == "north" else centroid.y
+        ax.text(
+            centroid.x, lat, label,
+            transform=DATA_TRANSFORM,
+            ha="center", va="center",
+            bbox=bbox,
+            zorder=10,
+        )
+
     for _, row in ccamlr.iterrows():
         code = row["GAR_Long_L"]
         if code == "48.6":
             north_half, south_half = split_486(row.geometry)
-            for half_geom, half_label in [(north_half, "48.6N"),
-                                          (south_half, "48.6S")]:
-                if half_geom.is_empty:
-                    continue
-                centroid = half_geom.centroid
-                ax.text(
-                    centroid.x, centroid.y, half_label,
-                    transform=DATA_TRANSFORM,
-                    ha="center", va="center",
-                    bbox=bbox,
-                    zorder=10,
-                )
+            place(north_half, "48.6N")
+            place(south_half, "48.6S")
         else:
-            centroid = row.geometry.centroid
-            ax.text(
-                centroid.x, centroid.y, code,
-                transform=DATA_TRANSFORM,
-                ha="center", va="center",
-                bbox=bbox,
-                zorder=10,
-            )
+            place(row.geometry, code)
 
 
 # ---------------------------------------------------------------------------
@@ -336,20 +476,23 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     add_486_split_line(ax, ccamlr)
     add_domain_boundary(ax)
 
+    # Sea-ice edges (above land, below CCAMLR labels).
+    sic_handles = add_sea_ice_edges(ax, ds)
+
     # CCAMLR labels (above land, above coastlines).
     add_ccamlr_labels(ax, ccamlr)
 
     # ------------------------------------------------------------------
     # Legends
     # ------------------------------------------------------------------
-    # Legend 1 (upper right): zone / domain key.
+    # Legend 1 (upper right): zone / domain / sea-ice key.
     domain_patch = mpatches.Patch(
         facecolor="none", edgecolor="0.7", linestyle="--",
         label="Computational domain",
     )
     spawning_patch = mpatches.Patch(
         facecolor="C0", alpha=0.5, edgecolor="none",
-        label="Spawning zone (1000–2000 m)",
+        label="Spawning zone (1000-2000 m)",
     )
     shelf_patch = mpatches.Patch(
         facecolor="C1", alpha=0.5, edgecolor="none",
@@ -358,10 +501,23 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     legend_zones = ax.legend(
         handles=[domain_patch, spawning_patch, shelf_patch],
         loc="upper right",
+        alignment="left",
         framealpha=1.0,
     )
 
-    # Legend 2 (lower left): CCAMLR subarea code -> geographic name.
+    # Legend 2 (lower right): sea-ice edges, in their own titled box so the
+    # month and period encodings read as one key rather than four loose
+    # entries.
+    legend_sic = ax.legend(
+        handles=sic_handles,
+        title=SIC_LEGEND_TITLE,
+        title_fontproperties={"weight": SIC_LEGEND_TITLE_WEIGHT},
+        alignment="left",
+        loc=SIC_LEGEND_LOC,
+        framealpha=1.0,
+    )
+
+    # Legend 3 (lower left): CCAMLR subarea code -> geographic name.
     # Code-only labels with no handle, so the legend is a clean two-column
     # mapping table rather than a list of duplicate "none" patches.
     area_handles = [
@@ -372,16 +528,18 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     legend_areas = ax.legend(
         handles=area_handles,
         loc="lower left",
+        alignment="left",
         handlelength=0,
         handletextpad=0,
         framealpha=1.0,
     )
-    # Re-add the first legend (matplotlib drops it when a second is added).
+    # Re-add the earlier legends (matplotlib keeps only the most recent).
     ax.add_artist(legend_zones)
+    ax.add_artist(legend_sic)
 
     fig.savefig(out_path, dpi=500)
     plt.close(fig)
-    print(f"Wrote {out_path}")
+    print(f"Wrote {display_path(out_path)}")
 
 
 def main():

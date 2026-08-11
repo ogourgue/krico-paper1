@@ -13,3 +13,7 @@ __pycache__/
 **/data/*.nc
 **/*.png
 **/*.pdf
+
+# Downloaded sea-ice concentration files (F1; re-fetch with download_sic.sh,
+# verify against F1_domain_map/sic_provenance.txt)
+**/data/sic/
