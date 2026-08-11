@@ -1,6 +1,6 @@
 # KRICO: Paper 1
 
-Figures and analysis for KRICO Paper 1: *Sea-ice timing governs the January peak and regional asymmetries in Antarctic krill larval recruitment*. Publication-ready visualizations of 32-year hindcast (1994–2025) larval dispersal outcomes and spatial connectivity across CCAMLR Areas 48 and 88.
+Figures and analysis for KRICO Paper 1: *Timing of sea-ice retreat and advance governs the January peak and regional asymmetries in Antarctic krill larval recruitment*. Publication-ready visualizations of 32-year hindcast (1994–2025) larval dispersal outcomes and spatial connectivity across CCAMLR Areas 48 and 88.
 
 Author: Olivier Gourgue (RBINS)
 
