@@ -33,6 +33,20 @@ F1 additionally needs observed sea-ice concentration, which is not committed (~2
 
 After each aggregation run, re-run the corresponding `plot.py` to regenerate the figure.
 
+## Supporting Information analyses
+
+`S*` folders hold analyses that support the Supporting Information rather than a main-text figure. They have heavier requirements than the figure folders: they read the raw trajectories, and they import the recruitment package rather than only its outputs.
+
+- `S1_m1_offset_sensitivity/` — how much the M1 classification depends on the descent-ascent offset between spawning and calyptopis I.
+
+In addition to `KRICO_POST` and `KRICO_GLORYS12` above, S1 requires:
+
+- `KRICO_RUNS` — path to the raw trajectory simulations (e.g., `/path/to/KRICO/Runs`). The raw trajectories are not publicly archived; see [krico-post-production](https://github.com/ogourgue/krico-post-production).
+
+Note that S1 uses `KRICO_POST` to import `krico_recruitment`, so it must point at a clone of the pipeline repository, not merely at a directory of recruitment outputs. It also reads the GLORYS12 monthly sea-ice files (`glorys12_ice_YYYY_MM.nc`) from `KRICO_GLORYS12`, alongside the bathymetry that F1 uses.
+
+See the folder's own README for what the analysis establishes and how to run it.
+
 ## Layout
 
 ```
@@ -41,7 +55,8 @@ F2_phenology_curve/             # headline: 32-year mean recruitment success vs 
 F3_outcome_composition/         # 32-year mean fractional outcome breakdown vs release date
 F4_source_maps/                 # release-position density per outcome (where particles came from)
 F5_destination_maps/            # fate-position density per outcome (where particles ended up)
+S1_m1_offset_sensitivity/       # SI: sensitivity of M1 to the descent-ascent offset
 ccamlr-data/                    # CCAMLR Statistical Areas shapefile (bundled; see ccamlr-data/README.md)
 ```
 
-Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s). F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `data/ccamlr_summary.csv`.
+Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s). F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `data/ccamlr_summary.csv`. S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV.
