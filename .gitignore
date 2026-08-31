@@ -9,9 +9,9 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Aggregated data and figure outputs (regenerable from upstream pipeline outputs)
-**/data/*.nc
-**/*.png
+# Aggregated data (data/aggregated.nc) and rendered figures (*.png) are
+# committed: the repo README promises that reproducing a figure needs only
+# plot.py, without the 56 GB recruitment dataset behind it.
 **/*.pdf
 
 # Downloaded sea-ice concentration files (F1; re-fetch with download_sic.sh,
