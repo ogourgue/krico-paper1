@@ -10,7 +10,7 @@ Stacked-area showing what happens to each particle as a function of release date
 - Y-axis: cumulative fraction (%).
 - Layers, bottom to top (with manuscript labels and internal flag names):
   - Domain exit — `exited_domain` — particle left the model domain (a modeling-domain limitation, not a biological outcome; placed at the bottom as a "noise floor" so the y-axis sums to 100%)
-  - Ice at spawning (M1) — `killed_M1` — at release (sea ice too dense to spawn)
+  - Ice at spawning (M1) — `killed_M1` — at spawning, 24 days before release (compact sea ice prevents spawning)
   - Calyptope starvation (M4) — `killed_M4` — during calyptope window (starvation under sea ice)
   - Under-developed (M5a) — `killed_M5_no_FIV` — at sea-ice advance event (development too slow)
   - Off-shelf (M5b) — `killed_M5_not_on_shelf` — at sea-ice advance event (off-shelf at advance)
