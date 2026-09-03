@@ -6,8 +6,14 @@ recruitment data directory and aggregates to a (year, season_day, outcome)
 grid:
 
   - season_day = 0 corresponds to Nov 15
-  - season_day = 120 corresponds to Mar 15
-  - Feb 29 cohorts in leap years are excluded
+  - season_day = 119 corresponds to Mar 14, the last release date
+  - season_day = 120 (Mar 15) is allocated but never populated: the release
+    season is Nov 15 -> Mar 14, i.e. 120 days (Nov 30 + Dec 31 + Jan 31 +
+    Feb 28), so the grid carries one unused trailing column. Reporting
+    derives the last populated day from has_data rather than assuming it.
+  - Feb 29 cohorts in leap years are excluded, which is what makes the
+    season-day grid uniform across leap and non-leap years
+    (32 x 120 + 8 leap-year Feb 29 cohorts = 3848 files, 3840 processed)
   - Cohorts that do not exist (Nov 31, Feb 30) are kept as zero counts
 
 For each (year, season_day) cell, the script records counts for each of the
@@ -34,10 +40,12 @@ import xarray as xr
 # ---------------------------------------------------------------------------
 
 # Spawning years span 1994..2025 (32 years).
-# A spawning year Y corresponds to the season Nov 15 (Y-1) -> Mar 15 (Y).
+# A spawning year Y corresponds to the season Nov 15 (Y-1) -> Mar 14 (Y).
 SPAWNING_YEARS = np.arange(1994, 2026)
 N_YEARS = len(SPAWNING_YEARS)
-N_SEASON_DAYS = 121  # Nov 15 -> Mar 15 inclusive
+# Grid width. Releases occupy indices 0..119 (Nov 15 -> Mar 14); index 120
+# (Mar 15) is never populated. Kept at 121 so the output shape is unchanged.
+N_SEASON_DAYS = 121
 
 # Outcome integer flags from the recruitment pipeline (CF flag values).
 # Order matches outcome.py in krico-post-production.
@@ -193,7 +201,9 @@ def aggregate(data_dir: Path) -> xr.Dataset:
                      {"long_name": "spawning year"}),
             "season_day": ("season_day", np.arange(N_SEASON_DAYS, dtype=np.int32),
                            {"long_name": "season day index",
-                            "description": "0 = Nov 15, 120 = Mar 15; Feb 29 excluded"}),
+                            "description": "0 = Nov 15, 119 = Mar 14 (last release "
+                                           "date); index 120 (Mar 15) is unpopulated; "
+                                           "Feb 29 excluded"}),
             "outcome": ("outcome", np.array(OUTCOME_NAMES)),
         },
         attrs={
@@ -214,14 +224,20 @@ def print_summary_stats(ds: xr.Dataset) -> None:
     section for F3.
 
     Computes:
-      - Per-outcome climatological fraction at season start (Nov 15),
-        climatological success peak (Jan 19, sd 65), and season end (Mar 14)
-      - For each mortality category, the season day at which its
-        climatological mean share is highest, and the value at that peak
-      - The M1↔M6 crossover day (where M6 share first exceeds M1 share in
+      - Per-outcome climatological fraction at the season start, at the
+        climatological success peak, and at the season end. The peak is
+        located by argmax on the climatological success curve rather than
+        hardcoded, so it cannot drift from the peak F2 reports; the season
+        end is derived from has_data rather than assumed.
+      - For each outcome, the season day at which its climatological mean
+        share is highest, and the value at that peak
+      - The M1<->M6 crossover day (where M6 share first exceeds M1 share in
         the climatological mean)
-      - At each anchor day, the total mortality fraction and the success
-        fraction (with success fraction ≈ value from F2 at that day)
+      - M1 and M6 across the season, quoted at the two season endpoints,
+        which is what the Results section uses
+      - Off-shelf failure (M5b) against success: peak lag, whether M5b
+        exceeds success at every release date, and the range of the
+        M5b/success ratio
 
     Censored is folded into M6 (consistent with F3 plot.py).
     """
@@ -251,16 +267,30 @@ def print_summary_stats(ds: xr.Dataset) -> None:
         # Climatological mean over years -> (season_day, outcome).
         mean_frac = np.nanmean(frac_pct, axis=0)
 
-    # ---- Anchor days: Nov 15 (sd 0), success peak (sd 65, Jan 19), Mar 14 (sd 119)
-    anchor_days = [(0, "Nov 15 (season start)"),
-                   (65, "Jan 19 (climatological peak success)"),
-                   (119, "Mar 14 (season end)")]
+    # ---- Locate the climatological success peak rather than hardcoding it.
+    # Same quantity F2 reports as the peak release date, so the two figures
+    # cannot drift apart.
+    success_idx = outcome_names.index("success")
+    success_mean = mean_frac[:, success_idx]
+    peak_sd = int(np.nanargmax(success_mean))
+    peak_label = season_day_to_label(peak_sd)
+
+    # Last season day actually released. Nov 15 -> Mar 14 is 120 days, so
+    # sd 120 (Mar 15) is empty in every year; derive it rather than assume.
+    days_with_data = np.where(has_data.any(axis=0))[0]
+    last_sd = int(days_with_data[-1])
+
+    # ---- Anchor days: season start, climatological success peak, season end
+    anchor_days = [(0, f"{season_day_to_label(0)} (season start)"),
+                   (peak_sd, f"{peak_label} (climatological peak success)"),
+                   (last_sd, f"{season_day_to_label(last_sd)} (season end)")]
 
     print()
     print("=" * 72)
     print("F3 climatological breakdown by season day (mean over 32 years, in %)")
     print("=" * 72)
-    print(f"{'Outcome':28s} {'Nov 15':>8s} {'Jan 19':>8s} {'Mar 14':>8s}")
+    print(f"{'Outcome':28s} {season_day_to_label(0):>8s} "
+          f"{peak_label:>8s} {season_day_to_label(last_sd):>8s}")
     print("-" * 72)
 
     # Display order: top of stack to bottom of stack (success at top).
@@ -294,7 +324,7 @@ def print_summary_stats(ds: xr.Dataset) -> None:
     ]:
         print(f"{label:28s} {vec[0]:8.2f} {vec[1]:8.2f} {vec[2]:8.2f}")
 
-    # ---- Per-mortality-category climatological peak day & value
+    # ---- Per-category climatological peak day & value
     print()
     print("=" * 72)
     print("Per-category climatological peak (over season days):")
@@ -311,15 +341,15 @@ def print_summary_stats(ds: xr.Dataset) -> None:
         if np.all(np.isnan(col)):
             print(f"{name:28s} {'(no data)':>20s} {'-':>8s}")
             continue
-        peak_sd = int(np.nanargmax(col))
-        peak_val = float(np.nanmax(col))
-        print(f"{name:28s} {f'sd {peak_sd} ({season_day_to_label(peak_sd)})':>20s} "
-              f"{peak_val:8.2f}")
+        cat_peak_sd = int(np.nanargmax(col))
+        cat_peak_val = float(np.nanmax(col))
+        print(f"{name:28s} {f'sd {cat_peak_sd} ({season_day_to_label(cat_peak_sd)})':>20s} "
+              f"{cat_peak_val:8.2f}")
 
     # ---- M1 -> M6 crossover (climatological)
     print()
     print("=" * 72)
-    print("M1 ↔ M6 crossover (climatological mean):")
+    print("M1 <-> M6 crossover (climatological mean):")
     print("=" * 72)
     m1 = mean_frac[:, outcome_names.index("killed_M1")]
     m6 = mean_frac[:, outcome_names.index("killed_M6_no_advance")]
@@ -335,30 +365,53 @@ def print_summary_stats(ds: xr.Dataset) -> None:
         print(f"    M1 at sd {cross_sd}:   {m1[cross_sd]:.2f}%   "
               f"M6 at sd {cross_sd}:   {m6[cross_sd]:.2f}%")
     else:
-        print("  No sign change detected — one category dominates throughout.")
+        print("  No sign change detected -- one category dominates throughout.")
 
-    # ---- M1 reduction from season start to climatological peak
+    # ---- M1 decline across the season (climatological mean).
+    # The Results sentence quotes the two season endpoints, so report those
+    # alongside the peak-day value.
     print()
     print("=" * 72)
-    print("M1 reduction from Nov 15 to Jan 19 (climatological mean):")
+    print("M1 decline across the season (climatological mean):")
     print("=" * 72)
-    m1_nov15 = m1[0]
-    m1_jan19 = m1[65]
-    print(f"  Nov 15: M1 = {m1_nov15:.2f}%")
-    print(f"  Jan 19: M1 = {m1_jan19:.2f}%")
-    print(f"  Reduction: {m1_nov15 - m1_jan19:+.2f} percentage points "
-          f"({100 * (1 - m1_jan19 / max(m1_nov15, 1e-9)):.1f}% relative reduction)")
+    for sd, tag in [(0, "season start"), (peak_sd, "success peak"),
+                    (last_sd, "season end")]:
+        print(f"  {season_day_to_label(sd):>6s} ({tag:12s}): M1 = {m1[sd]:.2f}%")
+    print(f"  Start to end: {m1[0] - m1[last_sd]:+.2f} percentage points "
+          f"({100 * (1 - m1[last_sd] / max(m1[0], 1e-9)):.1f}% relative reduction)")
 
-    # ---- M6 increase from climatological peak to season end
+    # ---- M6 across the season (climatological mean).
     print()
     print("=" * 72)
-    print("M6 increase from Jan 19 to Mar 14 (climatological mean):")
+    print("M6 across the season (climatological mean):")
     print("=" * 72)
-    m6_jan19 = m6[65]
-    m6_mar14 = m6[119]
-    print(f"  Jan 19: M6 = {m6_jan19:.2f}%")
-    print(f"  Mar 14: M6 = {m6_mar14:.2f}%")
-    print(f"  Increase: {m6_mar14 - m6_jan19:+.2f} percentage points")
+    for sd, tag in [(0, "season start"), (peak_sd, "success peak"),
+                    (last_sd, "season end")]:
+        print(f"  {season_day_to_label(sd):>6s} ({tag:12s}): M6 = {m6[sd]:.2f}%")
+    m6_max_sd = int(np.nanargmax(m6))
+    print(f"  Maximum: {m6[m6_max_sd]:.2f}% on "
+          f"{season_day_to_label(m6_max_sd)} (sd {m6_max_sd})")
+
+    # ---- Off-shelf failure (M5b) against success: the Results claims that
+    # M5b tracks success in timing and exceeds it at every release date.
+    print()
+    print("=" * 72)
+    print("Off-shelf failure (M5b) vs recruitment success (climatological mean):")
+    print("=" * 72)
+    m5b = mean_frac[:, outcome_names.index("killed_M5_not_on_shelf")]
+    valid = ~np.isnan(m5b) & ~np.isnan(success_mean)
+    m5b_peak_sd = int(np.nanargmax(m5b))
+    print(f"  M5b peak: {m5b[m5b_peak_sd]:.2f}% on "
+          f"{season_day_to_label(m5b_peak_sd)} (sd {m5b_peak_sd}); "
+          f"success peak {peak_label}, lag {m5b_peak_sd - peak_sd:+d} days")
+    print(f"  M5b exceeds success on every release day: "
+          f"{bool(np.all(m5b[valid] > success_mean[valid]))}")
+    ratio = np.full_like(m5b, np.nan)
+    ratio[valid] = m5b[valid] / np.maximum(success_mean[valid], 1e-9)
+    lo, hi = int(np.nanargmin(ratio)), int(np.nanargmax(ratio))
+    print(f"  Ratio M5b/success: min {ratio[lo]:.2f}x on "
+          f"{season_day_to_label(lo)}, max {ratio[hi]:.2f}x on "
+          f"{season_day_to_label(hi)}")
 
 
 # ---------------------------------------------------------------------------
@@ -394,7 +447,7 @@ def main():
 
     # Quick summary to stdout.
     print()
-    print("Summary (overall fractions across the full 30-year dataset):")
+    print("Summary (overall fractions across the full 32-year dataset):")
     total_counts = ds["counts"].sum(dim=("year", "season_day")).values
     grand_total = int(total_counts.sum())
     for name, c in zip(OUTCOME_NAMES, total_counts):
