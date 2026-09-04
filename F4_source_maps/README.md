@@ -17,7 +17,7 @@ Multi-panel grid of release-position concentration maps, one panel per outcome. 
   - `Reds` for the five mortality panels (shared colormap, comparable within the mortality group).
 - **Single shared vmax** across both colormaps, computed as the 99th percentile of all nonzero density cells pooled together.
 - **Two colorbars** at the bottom of the figure, one per color group, centered. Labels: "Recruitment success density" (under col 0) and "Mortality density" (under col 1).
-- **Panel labels:** combined letter + fate name in a framed box, upper-right. Manuscript labeling convention: plain-English name first, M-code in parentheses (e.g., "Calyptope starvation (M4)"). M5a and M5b are abbreviated to "Under-developed (M5a)" and "Off-shelf (M5b)" for compactness.
+- **Panel labels:** combined letter + fate name in a framed box, upper-right. Manuscript labeling convention: plain-English name first, M-code in parentheses (e.g., "Calyptopis starvation (M4)"). M5a and M5b are abbreviated to "Under-developed (M5a)" and "Off-shelf (M5b)" for compactness.
 - Coastlines + gray land fill via cartopy NaturalEarth.
 - **Boundary overlays** (linestyle convention consistent with F1):
   - CCAMLR subarea outlines: plain light gray.

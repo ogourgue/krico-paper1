@@ -71,7 +71,7 @@ PANEL_LAYOUT = [
 PANEL_LABELS = {
     "success":                "Recruitment success",
     "killed_M1":              "Ice at spawning (M1)",
-    "killed_M4":              "Calyptope starvation (M4)",
+    "killed_M4":              "Calyptopis starvation (M4)",
     "killed_M5_no_FIV":       "Under-developed (M5a)",
     "killed_M5_not_on_shelf": "Off-shelf (M5b)",
     "killed_M6_no_advance":   "No winter ice (M6)",

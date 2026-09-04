@@ -7,9 +7,9 @@ Multi-panel grid of fate-position concentration maps, one panel per outcome. For
 The "destination" interpretation depends on what defines the moment of fate (`fate_day` in the recruitment pipeline):
 
 - **Recruitment success / Under-developed (M5a) / Off-shelf (M5b):** position when the winter sea-ice advance event was detected. For successes, this is the recruitment moment — particle had reached FIV and was on shelf-slope when ice arrived. For both M5 categories, particle had ice arrive but failed one of the recruitment criteria (developmental for M5a, spatial for M5b).
-- **Calyptope starvation (M4):** position when the 10-consecutive-days SIC > 40% threshold was crossed during the calyptope window.
+- **Calyptopis starvation (M4):** position when the 10-consecutive-days SIC > 40% threshold was crossed during the calyptopis window.
 - **Ice at spawning (M1):** position at release. The constraint is evaluated at the spawning date, 24 days earlier, but the descent-ascent cycle is not simulated, so the release position stands as the spawning position and `fate_day` is 0. Panel (b) is therefore identical to F4 panel (b) by construction.
-- **No winter ice (M6):** position at the last valid trajectory day (typically day 200 for particles surviving the full tracking window). After folding censored particles into `killed_M6`, this panel reflects the spatial distribution of all particles that survived the calyptope window but did not encounter winter sea-ice advance within the tracking window.
+- **No winter ice (M6):** position at the last valid trajectory day (typically day 200 for particles surviving the full tracking window). After folding censored particles into `killed_M6`, this panel reflects the spatial distribution of all particles that survived the calyptopis window but did not encounter winter sea-ice advance within the tracking window.
 
 ## Scope
 
