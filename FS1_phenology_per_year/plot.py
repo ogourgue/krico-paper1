@@ -1,5 +1,5 @@
 """
-FS2 plot: per-year phenology curves and the distribution of per-year peak
+FS1 plot: per-year phenology curves and the distribution of per-year peak
 release dates.
 
 Supporting Information companion to F2. F2 shows the 32-year climatological
