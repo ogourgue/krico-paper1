@@ -1,6 +1,6 @@
 """
 FS1 plot: per-year phenology curves and the distribution of per-year peak
-release dates.
+release dates. Figure S1 of the manuscript.
 
 Supporting Information companion to F2. F2 shows the 32-year climatological
 mean with its interannual 5th-95th percentile envelope; that envelope
@@ -44,16 +44,16 @@ from matplotlib.ticker import MaxNLocator
 # Style (see ../FIGURE_STYLE.md)
 # ---------------------------------------------------------------------------
 #
-# Two panels of equal height, each at the 4:3 aspect ratio of the
-# single-panel figures, so the figure is 6.5 x 9.75 in. Everything else is
-# left at its rcParams default: marker sizes, legend font size, histogram
-# edges and axis limits are not overridden. The one exception is the
-# individual-year line width, noted below.
+# Two panels of equal height. Sized to fit a US Letter page with 1 in margins
+# (6.5 x 9 in of live area) with room left for the caption: 6.5 x 8 in, so each
+# panel is 6.5 x 4 in. Everything else is left at its rcParams default: marker
+# sizes, legend font size, histogram edges and axis limits are not overridden.
+# The one exception is the individual-year line width, noted below.
 
 mpl.rcParams.update({
     "font.family": "Arial",
     "font.size": 9,
-    "figure.figsize": (6.5, 9.75),        # 6.5 in wide, two 4:3 panels
+    "figure.figsize": (6.5, 8.0),         # 6.5 in wide, two 6.5 x 4 in panels
 })
 
 
