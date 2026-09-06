@@ -25,3 +25,4 @@ __pycache__/
 ecsbatch.log.*
 FS2_currents/data/aggregated.nc
 FS2_currents/data/checkpoint.npz
+FS2_currents/*.out
