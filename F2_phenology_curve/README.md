@@ -12,12 +12,14 @@ Headline figure for KRICO Paper 1: 32-year climatological mean recruitment succe
 
 Recruitment success is defined as the fraction of released particles reaching the furcilia IV (FIV) larval stage on shelf-slope (bathymetry < 2000 m) at the moment of sea-ice advance. See Gourgue et al. (2026) Methods section for the full classification.
 
-Feb 29 cohorts are excluded from the climatology to keep the season-day grid uniformly 121 days across leap and non-leap years.
+Feb 29 cohorts are excluded from the climatology to keep the season-day grid uniformly 120 days across leap and non-leap years. The release season runs Nov 15 → Mar 14: 30 + 31 + 31 + 28 days. The season-day axis is allocated 121 slots, of which the last (Mar 15) is never populated; reporting derives the last populated day from `has_data` rather than assuming it.
 
 ## Files
 
-- `aggregate.py` — reads recruitment cohort NetCDFs from `$KRICO_POST/recruitment/data/`,, aggregates to `(year, season_day)` grid, writes `data/aggregated.nc`.
+- `aggregate.py` — reads recruitment cohort NetCDFs from `$KRICO_POST/recruitment/data/`, aggregates to `(year, season_day)` grid, writes `data/aggregated.nc`.
 - `plot.py` — reads `data/aggregated.nc`, writes `phenology_curve.png`.
+
+`data/aggregated.nc` is also read by `../FS1_phenology_per_year/plot.py`, which resolves the per-year curves and the distribution of per-year peak dates for Figure S1 rather than re-aggregating them.
 
 ## Run
 
