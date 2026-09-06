@@ -23,3 +23,5 @@ __pycache__/
 
 # SLURM submission logs (dropped in the submission directory by ecsbatch)
 ecsbatch.log.*
+FS2_currents/data/aggregated.nc
+FS2_currents/data/checkpoint.npz
