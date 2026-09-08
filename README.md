@@ -33,6 +33,14 @@ Each folder maps to one or two items in the manuscript:
 
 AGU numbers the Text, Figure and Table series separately in the Supporting Information, so a shared number does not mean a shared item: `S1` is Text S1 and `FS1` is Figure S1, and the two are unrelated. Tables S1 and S2 are produced by `ccamlr_summary.py` in the F4 and F5 folders rather than by a folder of their own.
 
+## Environment
+
+Most of this repository runs locally on Python 3.14.7. Two workloads run on the ECMWF HPC instead, on Python 3.13.13: `FS2_currents/aggregate.py`, submitted via its `job.sh`, and `S1_m1_offset_sensitivity/`, submitted via its `sweep.sh`. Neither environment requires Parcels — every folder here reads simulation output rather than producing it.
+
+The split follows the environment variables described below: folders needing `KRICO_GLORYS12`, `KRICO_ROOT` or `KRICO_RUNS` run on the HPC, everything else runs locally. In particular `S2_m6_window_sensitivity/` runs on a laptop despite reading the same recruitment outputs as S1.
+
+Dependencies are `numpy`, `xarray`, `pandas`, `netCDF4`, `matplotlib`, `cartopy`, `geopandas` and `shapely`. S1 additionally imports the `krico_recruitment` package from [krico-post-production](https://github.com/ogourgue/krico-post-production), which is why its `KRICO_POST` must point at a clone of that repository rather than at a directory of outputs.
+
 ## Reproducing the figures
 
 The aggregated NetCDF files (`F*/data/aggregated.nc`) and the rendered figures (`F*/*.png`, `FS*/*.png`) are committed to the repo, so reproducing each figure requires only:
