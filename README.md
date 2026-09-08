@@ -15,9 +15,23 @@ Three kinds of folder, distinguished by prefix:
 
 - `F*` — main-text figures (F1–F5).
 - `FS*` — Supporting Information figures (FS1, FS2). These behave like the `F*` folders: each produces a rendered figure.
-- `S*` — Supporting Information analyses (S1). These produce no figure. They have heavier requirements than the figure folders: they read the raw trajectories, and they import the recruitment package rather than only its outputs.
+- `S*` — Supporting Information analyses (S1, S2). These produce no figure. Their requirements differ: S1 reads the raw trajectories and imports the recruitment package rather than only its outputs, so it is heavier than any figure folder; S2 reads only the recruitment outputs, like the `F*` aggregations.
 
-`S1` and `FS1` are unrelated to each other; the numbering runs separately within each prefix.
+Each folder maps to one or two items in the manuscript:
+
+| Folder | Manuscript item |
+|---|---|
+| `F1_domain_map` | Figure 1 |
+| `F2_phenology_curve` | Figure 2 |
+| `F3_outcome_composition` | Figure 3 |
+| `F4_source_maps` | Figure 4, Table S1 |
+| `F5_destination_maps` | Figure 5, Table S2 |
+| `FS1_phenology_per_year` | Figure S1 |
+| `FS2_currents` | Figure S2 |
+| `S1_m1_offset_sensitivity` | Text S1 |
+| `S2_m6_window_sensitivity` | Text S2 |
+
+AGU numbers the Text, Figure and Table series separately in the Supporting Information, so a shared number does not mean a shared item: `S1` is Text S1 and `FS1` is Figure S1, and the two are unrelated. Tables S1 and S2 are produced by `ccamlr_summary.py` in the F4 and F5 folders rather than by a folder of their own.
 
 ## Reproducing the figures
 
@@ -56,14 +70,17 @@ After each aggregation run, re-run the corresponding `plot.py` to regenerate the
 `S*` folders hold analyses that support the Supporting Information rather than a figure.
 
 - `S1_m1_offset_sensitivity/` — how much the M1 classification depends on the descent-ascent offset between spawning and calyptopis I.
+- `S2_m6_window_sensitivity/` — how much the seasonal decline in M6 depends on the advance-detection window, which lengthens through the release season.
 
-In addition to `KRICO_POST` and `KRICO_GLORYS12` above, S1 requires:
+The two differ in what they need. In addition to `KRICO_POST` and `KRICO_GLORYS12` above, S1 requires:
 
 - `KRICO_RUNS` — path to the raw trajectory simulations (e.g., `/path/to/KRICO/Runs`). The raw trajectories are not publicly archived; see [krico-post-production](https://github.com/ogourgue/krico-post-production).
 
 Note that S1 uses `KRICO_POST` to import `krico_recruitment`, so it must point at a clone of the pipeline repository, not merely at a directory of recruitment outputs. It also reads the GLORYS12 monthly sea-ice files (`glorys12_ice_YYYY_MM.nc`) from `KRICO_GLORYS12`, alongside the bathymetry that F1 uses.
 
-See the folder's own README for what the analysis establishes and how to run it.
+S2 needs only `KRICO_POST`, and reads recruitment outputs from `$KRICO_POST/recruitment/data` exactly as the `F*` aggregations do. Its second test reads the committed `F1_domain_map/data/aggregated.nc` for the sea-ice edge, so nothing is downloaded. It runs on a laptop.
+
+See each folder's own README for what the analysis establishes and how to run it.
 
 ## Layout
 
@@ -76,7 +93,8 @@ F5_destination_maps/            # fate-position density per outcome (where parti
 FS1_phenology_per_year/         # SI figure: per-year success curves and the distribution of peak dates
 FS2_currents/                   # SI figure: 32-year mean circulation over the 50-200 m release depth band
 S1_m1_offset_sensitivity/       # SI analysis: sensitivity of M1 to the descent-ascent offset
+S2_m6_window_sensitivity/       # SI analysis: sensitivity of M6 to the advance-detection window
 ccamlr-data/                    # CCAMLR Statistical Areas shapefile (bundled; see ccamlr-data/README.md)
 ```
 
-Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with two exceptions: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation), and FS2's `data/aggregated.nc` is gitignored rather than committed. F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `data/ccamlr_summary.csv`; FS2 additionally contains `job.sh`. S1 is not a figure folder: it contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV.
+Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with two exceptions: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation), and FS2's `data/aggregated.nc` is gitignored rather than committed. F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `ccamlr_summary.csv`; FS2 additionally contains `job.sh`. The `S*` folders are not figure folders: S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV; S2 contains `sweep.py`, `compare.py`, `ice_reachability.py` and two output CSVs.
