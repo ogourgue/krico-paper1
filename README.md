@@ -15,7 +15,7 @@ Three kinds of folder, distinguished by prefix:
 
 - `F*` — main-text figures (F1–F5).
 - `FS*` — Supporting Information figures (FS1, FS2). These behave like the `F*` folders: each produces a rendered figure.
-- `S*` — Supporting Information analyses (S1, S2). These produce no figure. Their requirements differ: S1 reads the raw trajectories and imports the recruitment package rather than only its outputs, so it is heavier than any figure folder; S2 reads only the recruitment outputs, like the `F*` aggregations.
+- `S*` — supporting analyses (S1, S2, S3). These produce no figure. Their requirements differ: S1 reads the raw trajectories and imports the recruitment package rather than only its outputs, so it is heavier than any figure folder; S2 and S3 read only the recruitment outputs, like the `F*` aggregations.
 
 Each folder maps to one or two items in the manuscript:
 
@@ -30,6 +30,7 @@ Each folder maps to one or two items in the manuscript:
 | `FS2_currents` | Figure S2 |
 | `S1_m1_offset_sensitivity` | Text S1 |
 | `S2_m6_window_sensitivity` | Text S2 |
+| `S3_displacement` | Discussion (displacement statistic) |
 
 AGU numbers the Text, Figure and Table series separately in the Supporting Information, so a shared number does not mean a shared item: `S1` is Text S1 and `FS1` is Figure S1, and the two are unrelated. Tables S1 and S2 are produced by `ccamlr_summary.py` in the F4 and F5 folders rather than by a folder of their own.
 
@@ -37,7 +38,7 @@ AGU numbers the Text, Figure and Table series separately in the Supporting Infor
 
 Most of this repository runs locally on Python 3.14.7. Two workloads run on the ECMWF HPC instead, on Python 3.13.13: `FS2_currents/aggregate.py`, submitted via its `job.sh`, and `S1_m1_offset_sensitivity/`, submitted via its `sweep.sh`. Neither environment requires Parcels — every folder here reads simulation output rather than producing it.
 
-The split follows the environment variables described below: folders needing `KRICO_GLORYS12`, `KRICO_ROOT` or `KRICO_RUNS` run on the HPC, everything else runs locally. In particular `S2_m6_window_sensitivity/` runs on a laptop despite reading the same recruitment outputs as S1.
+The split follows the environment variables described below: folders needing `KRICO_GLORYS12`, `KRICO_ROOT` or `KRICO_RUNS` run on the HPC, everything else runs locally. In particular `S2_m6_window_sensitivity/` and `S3_displacement/` run on a laptop despite reading the same recruitment outputs as S1.
 
 Dependencies are `numpy`, `xarray`, `pandas`, `netCDF4`, `matplotlib`, `cartopy`, `geopandas` and `shapely`. S1 additionally imports the `krico_recruitment` package from [krico-post-production](https://github.com/ogourgue/krico-post-production), which is why its `KRICO_POST` must point at a clone of that repository rather than at a directory of outputs.
 
@@ -73,20 +74,21 @@ FS2 is a batch job rather than an interactive one: submit `FS2_currents/job.sh` 
 
 After each aggregation run, re-run the corresponding `plot.py` to regenerate the figure.
 
-## Supporting Information analyses
+## Supporting analyses
 
-`S*` folders hold analyses that support the Supporting Information rather than a figure.
+`S*` folders hold analyses that support a claim in the manuscript rather than producing a figure. S1 and S2 back the Supporting Information texts; S3 backs a statement in the Discussion.
 
 - `S1_m1_offset_sensitivity/` — how much the M1 classification depends on the descent-ascent offset between spawning and calyptopis I.
 - `S2_m6_window_sensitivity/` — how much the seasonal decline in M6 depends on the advance-detection window, which lengthens through the release season.
+- `S3_displacement/` — how far particles travel between release and the moment their fate is determined, as displacement and as along-track path length.
 
-The two differ in what they need. In addition to `KRICO_POST` and `KRICO_GLORYS12` above, S1 requires:
+They differ in what they need. In addition to `KRICO_POST` and `KRICO_GLORYS12` above, S1 requires:
 
 - `KRICO_RUNS` — path to the raw trajectory simulations (e.g., `/path/to/KRICO/Runs`). The raw trajectories are not publicly archived; see [krico-post-production](https://github.com/ogourgue/krico-post-production).
 
 Note that S1 uses `KRICO_POST` to import `krico_recruitment`, so it must point at a clone of the pipeline repository, not merely at a directory of recruitment outputs. It also reads the GLORYS12 monthly sea-ice files (`glorys12_ice_YYYY_MM.nc`) from `KRICO_GLORYS12`, alongside the bathymetry that F1 uses.
 
-S2 needs only `KRICO_POST`, and reads recruitment outputs from `$KRICO_POST/recruitment/data` exactly as the `F*` aggregations do. Its second test reads the committed `F1_domain_map/data/aggregated.nc` for the sea-ice edge, so nothing is downloaded. It runs on a laptop.
+S2 and S3 need only `KRICO_POST`, and read recruitment outputs from `$KRICO_POST/recruitment/data` exactly as the `F*` aggregations do. S2's second test also reads the committed `F1_domain_map/data/aggregated.nc` for the sea-ice edge, so nothing is downloaded. Both run on a laptop.
 
 See each folder's own README for what the analysis establishes and how to run it.
 
@@ -102,7 +104,8 @@ FS1_phenology_per_year/         # SI figure: per-year success curves and the dis
 FS2_currents/                   # SI figure: 32-year mean circulation over the 50-200 m release depth band
 S1_m1_offset_sensitivity/       # SI analysis: sensitivity of M1 to the descent-ascent offset
 S2_m6_window_sensitivity/       # SI analysis: sensitivity of M6 to the advance-detection window
+S3_displacement/                # Discussion: distance travelled between release and fate
 ccamlr-data/                    # CCAMLR Statistical Areas shapefile (bundled; see ccamlr-data/README.md)
 ```
 
-Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with two exceptions: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation), and FS2's `data/aggregated.nc` is gitignored rather than committed. F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `ccamlr_summary.csv`; FS2 additionally contains `job.sh`. The `S*` folders are not figure folders: S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV; S2 contains `sweep.py`, `compare.py`, `ice_reachability.py` and two output CSVs.
+Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with two exceptions: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation), and FS2's `data/aggregated.nc` is gitignored rather than committed. F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `ccamlr_summary.csv`; FS2 additionally contains `job.sh`. The `S*` folders are not figure folders: S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV; S2 contains `sweep.py`, `compare.py`, `ice_reachability.py` and two output CSVs; S3 contains `displacement.py` and its output CSV.
