@@ -4,6 +4,7 @@ F2 plot: phenology curve.
 Reads data/aggregated.nc and produces phenology_curve.png:
   - 30-year mean success rate vs. release season-day, with 5th-95th ribbon
   - Climatological peak day annotated
+  - Reference line at 90% of the climatological peak value
 """
 
 from __future__ import annotations
@@ -35,6 +36,10 @@ mpl.rcParams.update({
 # season_day 0 = Nov 15. Show first of each month only.
 TICK_DAYS = [16, 47, 78, 106]
 TICK_LABELS = ["Dec 1", "Jan 1", "Feb 1", "Mar 1"]
+
+# Fraction of the climatological peak value marked by the horizontal
+# reference line (the manuscript's "within 10% of its peak value").
+PEAK_FRACTION = 0.9
 
 
 # ---------------------------------------------------------------------------
@@ -104,6 +109,15 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
     axes_lw = mpl.rcParams["axes.linewidth"]
     ax.axvline(peak_day, color="black", linewidth=axes_lw, linestyle="--")
 
+    # Mark PEAK_FRACTION of the peak value with a horizontal line in the
+    # same style, at low opacity. Its text label is added below, with the
+    # peak label.
+    threshold_value = PEAK_FRACTION * peak_value
+    ax.axhline(
+        threshold_value, color="black", linewidth=axes_lw, linestyle="--",
+        alpha=0.2,
+    )
+
     # Peak label above the mean line, horizontally centered on the peak date.
     # Frame styled to match the legend visually. Note: matplotlib's defaults
     # for legend.facecolor and legend.edgecolor are the literal string
@@ -130,6 +144,20 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
         xytext=(0, 8),
         textcoords="offset points",
         ha="center", va="bottom",
+        color="black",
+        bbox=bbox,
+    )
+
+    # Threshold label on the horizontal line at the left edge, where the
+    # line runs clear of the curve and the ribbon. Same frame as the peak
+    # label; x in axes fraction, y in data units.
+    ax.annotate(
+        f"{PEAK_FRACTION:.0%} of peak ({threshold_value:.1f}%)",
+        xy=(0, threshold_value),
+        xycoords=ax.get_yaxis_transform(),
+        xytext=(8, 0),
+        textcoords="offset points",
+        ha="left", va="center",
         color="black",
         bbox=bbox,
     )
