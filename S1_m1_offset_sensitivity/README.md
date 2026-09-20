@@ -12,7 +12,7 @@ the release position on the spawning date, sampling the GLORYS12 sea-ice
 field directly rather than reading the trajectory at day 0.
 
 That requires a value for the offset. Thorpe et al. (2019) give 23-26 days
-and the pipeline applies the midpoint, 24 days, as a constant
+and the pipeline applies 24 days, taken from that range, as a constant
 (`krico_recruitment.sea_ice.SPAWNING_OFFSET_DAYS`). This analysis measures
 how much the M1 classification depends on that choice.
 

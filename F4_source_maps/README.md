@@ -24,7 +24,7 @@ Multi-panel grid of release-position concentration maps, one panel per outcome. 
   - 48.6 split at 60°S: dotted light gray — internal subdivision used in the per-CCAMLR-subarea breakdown (`ccamlr_summary.py`); densified to follow the curved parallel and clipped to the 48.6 polygon.
   - Model computational domain: dashed light gray — external boundary.
 - Censored particles are folded into M6 at plot time (consistent with F3 and the methodology decision); they share the same end-of-tracking, no-advance condition. The `killed_M6` vs censored breakdown lives in the SI.
-- `exited_domain` is not shown — it is a modeling-domain limitation (~1% of particles dataset-wide). A spatial map is in the SI. (F3 retains it as a noise-floor band in the stacked-area for accounting completeness.)
+- `exited_domain` is not shown — it is a modeling-domain limitation (0.8% of particles dataset-wide). Its per-subarea breakdown is in Table S1. (F3 retains it as a noise-floor band in the stacked-area for accounting completeness.)
 
 ## Per-CCAMLR-subarea breakdown
 
