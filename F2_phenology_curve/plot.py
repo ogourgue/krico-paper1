@@ -2,7 +2,7 @@
 F2 plot: phenology curve.
 
 Reads data/aggregated.nc and produces phenology_curve.png:
-  - 30-year mean success rate vs. release season-day, with 5th-95th ribbon
+  - 32-year mean success rate vs. release season-day, with 5th-95th ribbon
   - Climatological peak day annotated
   - Reference line at 90% of the climatological peak value
 """
@@ -18,7 +18,7 @@ import xarray as xr
 
 
 # ---------------------------------------------------------------------------
-# Style (see ../FIGURE_STYLE.md)
+# Style
 # ---------------------------------------------------------------------------
 
 mpl.rcParams.update({

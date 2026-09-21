@@ -55,7 +55,7 @@ from shapely.ops import unary_union
 
 
 # ---------------------------------------------------------------------------
-# Style (see ../FIGURE_STYLE.md)
+# Style
 # ---------------------------------------------------------------------------
 
 # One panel covering this extent is ~3.3 in tall at 6.5 in wide (the natural

@@ -34,7 +34,7 @@ from shapely.ops import unary_union
 
 
 # ---------------------------------------------------------------------------
-# Style (see ../FIGURE_STYLE.md, plus per-figure deviations documented here)
+# Style
 # ---------------------------------------------------------------------------
 
 mpl.rcParams.update({

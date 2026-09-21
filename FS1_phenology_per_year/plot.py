@@ -41,7 +41,7 @@ from matplotlib.ticker import MaxNLocator
 
 
 # ---------------------------------------------------------------------------
-# Style (see ../FIGURE_STYLE.md)
+# Style
 # ---------------------------------------------------------------------------
 #
 # Two panels of equal height. Sized to fit a US Letter page with 1 in margins
