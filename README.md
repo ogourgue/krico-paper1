@@ -11,10 +11,11 @@ Related repositories:
 
 ## Folder naming
 
-Three kinds of folder, distinguished by prefix:
+Four kinds of folder, distinguished by prefix:
 
 - `F*` — main-text figures (F1–F5).
 - `FS*` — Supporting Information figures (FS1, FS2). These behave like the `F*` folders: each produces a rendered figure.
+- `MS*` — Supporting Information movies (MS1). Like FS2, the aggregation runs on the HPC and is too large to track; the frames are rendered locally.
 - `S*` — supporting analyses (S1, S2, S3). These produce no figure. Their requirements differ: S1 reads the raw trajectories and imports the recruitment package rather than only its outputs, so it is heavier than any figure folder; S2 and S3 read only the recruitment outputs, like the `F*` aggregations.
 
 Each folder maps to one or two items in the manuscript:
@@ -28,6 +29,7 @@ Each folder maps to one or two items in the manuscript:
 | `F5_destination_maps` | Figure 5, Table S2 |
 | `FS1_phenology_per_year` | Figure S1 |
 | `FS2_currents` | Figure S2 |
+| `MS1_outcome_movie` | Movie S1 |
 | `S1_m1_offset_sensitivity` | Text S1 |
 | `S2_m6_window_sensitivity` | Text S2 |
 | `S3_displacement` | Discussion (displacement statistic) |
@@ -36,7 +38,7 @@ AGU numbers the Text, Figure and Table series separately in the Supporting Infor
 
 ## Environment
 
-Most of this repository runs locally on Python 3.14.7. Two workloads run on the ECMWF HPC instead, on Python 3.13.13: `FS2_currents/aggregate.py`, submitted via its `job.sh`, and `S1_m1_offset_sensitivity/`, submitted via its `sweep.sh`. Neither environment requires Parcels — every folder here reads simulation output rather than producing it.
+Most of this repository runs locally on Python 3.14.7. Three workloads run on the ECMWF HPC instead, on Python 3.13.13: `FS2_currents/aggregate.py` and `MS1_outcome_movie/aggregate.py`, each submitted via its `job.sh`, and `S1_m1_offset_sensitivity/`, submitted via its `sweep.sh`. Neither environment requires Parcels — every folder here reads simulation output rather than producing it.
 
 The split follows the environment variables described below: folders needing `KRICO_GLORYS12`, `KRICO_ROOT` or `KRICO_RUNS` run on the HPC, everything else runs locally. In particular `S2_m6_window_sensitivity/` and `S3_displacement/` run on a laptop despite reading the same recruitment outputs as S1.
 
@@ -53,10 +55,11 @@ python plot.py
 
 Repeat in `F2_phenology_curve`, `F3_outcome_composition`, `F4_source_maps`, `F5_destination_maps`, and `FS1_phenology_per_year`. The CCAMLR Statistical Areas shapefile is bundled at `ccamlr-data/`. No environment variables or external data are needed for this workflow.
 
-Two folders depart from that pattern:
+Three folders depart from that pattern:
 
 - **`FS1_phenology_per_year`** has no `aggregate.py` and no `data/`. It needs exactly the quantities F2 already computes, so its `plot.py` reads `../F2_phenology_curve/data/aggregated.nc` directly. Duplicating the aggregation would let the two figures disagree about the same numbers.
 - **`FS2_currents`** is the one figure that cannot be reproduced from this repo alone. Its `data/aggregated.nc` is a mean field on the full 1/12° grid (~58 MB on disk), too large to track, so it is gitignored. Regenerating it means re-running `FS2_currents/aggregate.py` on a machine holding the GLORYS12 velocity fields — ~1.5 TB of reads over 384 monthly files, ~4.5 h as a batch job — and copying the result back. See `FS2_currents/README.md`.
+- **`MS1_outcome_movie`** renders movie frames rather than a figure. Its `data/aggregated.nc` holds one cohort's daily positions (a few hundred MB), so it is gitignored like FS2's. Regenerating it needs the raw trajectories, via `MS1_outcome_movie/job.sh` on the HPC. See `MS1_outcome_movie/README.md`.
 
 ## Re-running the aggregation from scratch
 
@@ -102,10 +105,11 @@ F4_source_maps/                 # release-position density per outcome (where pa
 F5_destination_maps/            # fate-position density per outcome (where particles ended up)
 FS1_phenology_per_year/         # SI figure: per-year success curves and the distribution of peak dates
 FS2_currents/                   # SI figure: 32-year mean circulation over the 50-200 m release depth band
+MS1_outcome_movie/              # SI movie: one cohort followed day by day until its outcomes are decided
 S1_m1_offset_sensitivity/       # SI analysis: sensitivity of M1 to the descent-ascent offset
 S2_m6_window_sensitivity/       # SI analysis: sensitivity of M6 to the advance-detection window
 S3_displacement/                # Discussion: distance travelled between release and fate
 ccamlr-data/                    # CCAMLR Statistical Areas shapefile (bundled; see ccamlr-data/README.md)
 ```
 
-Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with two exceptions: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation), and FS2's `data/aggregated.nc` is gitignored rather than committed. F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `ccamlr_summary.csv`; FS2 additionally contains `job.sh`. The `S*` folders are not figure folders: S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV; S2 contains `sweep.py`, `compare.py`, `ice_reachability.py` and two output CSVs; S3 contains `displacement.py` and its output CSV.
+Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with two exceptions: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation), and FS2's `data/aggregated.nc` is gitignored rather than committed. F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `ccamlr_summary.csv`; FS2 additionally contains `job.sh`. MS1 is a movie folder: it contains `README.md`, `aggregate.py`, `job.sh`, `plot.py` and `make_movie.sh`, and its `data/aggregated.nc` and `frames/` are gitignored. The `S*` folders are not figure folders: S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV; S2 contains `sweep.py`, `compare.py`, `ice_reachability.py` and two output CSVs; S3 contains `displacement.py` and its output CSV.

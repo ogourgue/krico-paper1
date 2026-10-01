@@ -11,10 +11,9 @@ __pycache__/
 
 # Aggregated data (data/aggregated.nc) and rendered figures (*.png) are
 # committed: the repo README promises that reproducing a figure needs only
-# plot.py, without the 56 GB recruitment dataset behind it. FS2 is the one
-# exception (see below): its aggregation is a mean field on the full 1/12
-# degree grid, too large to track, so that figure alone needs aggregate.py
-# re-run on a machine holding the GLORYS12 velocity fields.
+# plot.py, without the 56 GB recruitment dataset behind it. FS2 and MS1 are
+# the exceptions (see below): their aggregations are too large to track, so
+# they alone need aggregate.py re-run on the HPC.
 **/*.pdf
 
 # Downloaded sea-ice concentration files (F1; re-fetch with download_sic.sh,
@@ -35,3 +34,9 @@ ecsbatch.log.*
 FS2_currents/data/aggregated.nc
 FS2_currents/data/checkpoint.npz
 FS2_currents/*.out
+
+# MS1: the one-cohort aggregation holds daily positions for every particle
+# (a few hundred MB) and needs the raw trajectories to regenerate; the frames
+# are rendered from it by plot.py. See MS1_outcome_movie/README.md.
+MS1_outcome_movie/data/aggregated.nc
+MS1_outcome_movie/frames/
