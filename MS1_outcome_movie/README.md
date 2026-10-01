@@ -39,7 +39,7 @@ The cohort is that year's own peak release date. Years after 2016 are excluded s
 - `aggregate.py` — reads the cohort's raw trajectory, its recruitment file and the daily GLORYS12 sea ice, and writes `data/aggregated.nc`: daily positions up to each particle's fate day (int16-packed, fill afterwards), outcome, fate day and fate position per particle, and the coarsened daily sea ice. Runs on the HPC.
 - `job.sh` — SLURM driver for `aggregate.py`.
 - `plot.py` — reads `data/aggregated.nc` and writes `frames/frame_NNN.png`. Runs locally.
-- `make_movie.sh` — assembles the frames into `outcome_movie.mp4` with ffmpeg, holding the first and last frames.
+- `make_movie.sh` — assembles the frames into `outcome_movie.mp4` with ffmpeg, at 10 frames per second (about 20 s), with no frame held at the start or the end.
 
 `data/aggregated.nc` and `frames/` are gitignored: at full resolution the aggregation is a few hundred MB, and the frames are regenerated from it.
 
@@ -66,7 +66,7 @@ Then copy `data/aggregated.nc` to a local clone, and:
 ```bash
 python plot.py --frames 0:1 --stride 10    # quick look at one frame
 python plot.py                             # all frames, a few seconds each
-./make_movie.sh                            # FPS=12 by default
+./make_movie.sh                            # FPS=10 by default
 ```
 
 Frame ranges are independent (`--frames 0:100`, `--frames 100:`), so a long render can be split across processes.
