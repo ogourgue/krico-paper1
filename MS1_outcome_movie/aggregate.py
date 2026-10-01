@@ -358,8 +358,9 @@ def main():
                          "flag_values": flag_values,
                          "flag_meanings": flag_meanings}),
             "fate_day": ("particle", fate_day,
-                         {"long_name": "day index at which the outcome is decided",
-                          "units": "days since release"}),
+                         {"long_name": "days from release to the moment "
+                                       "the outcome is decided",
+                          "units": "days"}),
             "final_lon": ("particle", final_lon, {"units": "degrees_east"}),
             "final_lat": ("particle", final_lat, {"units": "degrees_north"}),
             "sic": (("day", "sic_lat", "sic_lon"), sic,

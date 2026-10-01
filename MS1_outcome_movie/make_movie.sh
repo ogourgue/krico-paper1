@@ -5,9 +5,9 @@
 #   ./make_movie.sh                 # 12 frames per second
 #   FPS=10 ./make_movie.sh
 #
-# The first frame is held HOLD_START seconds (release positions, with the
-# larvae that could not be spawned in red) and the last HOLD_END seconds (the
-# final outcome map), so the opening and the result can be read. H.264 in yuv420p with faststart is what
+# The first frame is held HOLD_START seconds (release positions) and the last
+# HOLD_END seconds (the final outcome map), so the opening and the result can
+# be read. H.264 in yuv420p with faststart is what
 # LinkedIn and most players expect.
 # ============================================================================
 

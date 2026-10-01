@@ -1,26 +1,28 @@
 # MS1 — Outcome movie
 
-Supporting Information movie: one release-day cohort followed from release to the end of tracking, with every particle turning green or red on the day its outcome is decided. It shows in motion what Figures 3 to 5 show in aggregate: the drift during summer, the sea-ice advance from April, and where larvae end up ready or not ready to overwinter.
+Supporting Information movie: one release-day cohort followed from release to the end of tracking, with particles turning green or red on the day their outcome is decided during tracking. It shows in motion what Figures 3 to 5 show in aggregate: the drift during summer, the sea-ice advance from April, and where larvae end up ready or not ready to overwinter.
 
 ## Scope
 
 - **Cohort:** a single release day, chosen from F2's aggregation (see below). By default 29 January 2006, spawned on 5 January 2006, all ~546,000 particles.
-- **Particles:**
-  - gray while drifting, at their daily position;
+- **Particles:** only particles that drift are shown.
+  - translucent gray while drifting, at their daily position;
   - green at their fate position from the day recruitment success is decided, and they stay;
-  - red at their fate position from the day any mortality outcome (M1, M4, M5a, M5b, M6) is decided, fading out over `FADE_DAYS` (5) days so the map stays readable;
+  - red at their fate position from the day M4, M5a or M5b is decided, fading out over `FADE_DAYS` (5) days so the map stays readable;
+  - M1 particles are not shown: they are never spawned;
+  - M6 particles (with censored folded in, as in the paper) stay gray to the end;
   - domain exits drift in gray until deleted, then disappear. They are a modelling limitation, not an outcome.
-- **Sea ice:** daily GLORYS12 concentration from the 15% advance threshold upward, block-averaged to 1/4°. These are the fields the simulation and the classification use, not the observed climatologies of F1.
-- **Isobath:** 2000 m, the bathymetric limit of recruitment habitat (the M5b criterion), from F1's masked bathymetry.
-- **Base map:** F1's land, coastline, CCAMLR outlines, 48.6 split and domain boundary, imported from `../F1_domain_map/plot.py` rather than copied. F1's bathymetry zones, sea-ice climatologies and legends are left out, and region names replace the subarea codes.
-- **Format:** 1080 × 1080 px frames, one per tracking day (201) plus `FADE_DAYS` hold frames at the end.
+- **Sea ice:** daily GLORYS12 concentration above the 15% advance threshold, block-averaged to 1/4°, as a single colour, matching the threshold (`SIC_BINARY = True`; `False` shades by concentration instead). These are the fields the simulation and the classification use, not the observed climatologies of F1.
+- **Shelf-slope zone:** bathymetry shallower than 2000 m, the bathymetric condition for recruitment success (its complement is M5b), as a translucent light gray drawn over the sea ice. It comes from F1's bathymetry, which is masked to the CCAMLR subareas, so the zone is drawn inside them only. The strip south of the GLORYS12 grid (about 77°S), where the bathymetry ends, is filled with the same colour across the domain's longitudes, since it is shelf in front of the Weddell ice shelves.
+- **Base map:** F1's land, coastline, CCAMLR outlines and domain boundary, imported from `../F1_domain_map/plot.py` rather than copied. F1's subarea labels, 48.6 split, bathymetry zones, sea-ice climatologies and legends are left out; the movie's legend names the outlines as CCAMLR subareas.
+- **Format:** 1080 × 1080 px frames, one per tracking day, from release (frame 0) to the end of tracking (frame 200).
 
 Outcome timing comes from the archived fate day (`travel_time`) of the recruitment classification, so the movie cannot disagree with it:
 
-- M1 is decided at spawning, before release: those particles are red on the first frame and never drift.
 - M4 is decided when the starvation threshold is crossed, during the calyptopis stages.
 - Success, M5a and M5b are decided at each particle's own sea-ice advance, from 1 April onward, so they appear as the ice edge moves north.
-- M6 (with censored folded in, as in the paper) is decided at the end of tracking: those particles all turn red on the last day, and the hold frames let them fade while success stays.
+- M6 is only decided at the end of tracking, which is where the movie ends: those particles are still gray on the last frame, and that gray cloud is the larvae winter sea ice never reached.
+- M1 is decided at spawning, before release, so those particles never enter the movie.
 
 ## Cohort choice
 
