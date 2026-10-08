@@ -40,3 +40,6 @@ FS2_currents/*.out
 # are rendered from it by plot.py. See MS1_outcome_movie/README.md.
 MS1_outcome_movie/data/aggregated.nc
 MS1_outcome_movie/frames/
+# The per-year series (job_series.sh) is not part of the paper: its
+# aggregations, frames and movies stay local, only the scripts are tracked.
+MS1_outcome_movie/series/

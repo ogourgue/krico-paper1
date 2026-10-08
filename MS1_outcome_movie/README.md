@@ -40,8 +40,9 @@ The cohort is that year's own peak release date. Years after 2016 are excluded s
 - `job.sh` — SLURM driver for `aggregate.py`.
 - `plot.py` — reads `data/aggregated.nc` and writes `frames/frame_NNN.png`. Runs locally.
 - `make_movie.sh` — assembles the frames into `outcome_movie.mp4` with ffmpeg, at 10 frames per second (about 20 s), with no frame held at the start or the end.
+- `job_series.sh` — SLURM array driver for the per-year series (below): runs the three steps above on the HPC for every spawning year.
 
-`data/aggregated.nc` and `frames/` are gitignored: at full resolution the aggregation is a few hundred MB, and the frames are regenerated from it.
+`data/aggregated.nc`, `frames/` and `series/` are gitignored: at full resolution the aggregation is a few hundred MB, and the frames are regenerated from it.
 
 ## Inputs (read by `aggregate.py`)
 
@@ -70,3 +71,16 @@ python plot.py                             # all frames, a few seconds each
 ```
 
 Frame ranges are independent (`--frames 0:100`, `--frames 100:`), so a long render can be split across processes.
+
+## Per-year series (not part of the paper)
+
+A variant made at the co-authors' request for a stakeholder meeting: one movie per spawning year, 1994 to 2025, all for the cohort released on the climatological peak day (29 January, the same step 1 as the cohort choice above, read from F2 by `aggregate.py --year`). The design is identical to `outcome_movie.mp4`; only the cohort changes, so the years can be compared side by side. Only the scripts are committed; the movies are kept locally and passed on directly. The whole chain runs on the HPC, one array task per year, with the frames split across the task's cores:
+
+```bash
+cd MS1_outcome_movie
+bash job_series.sh --preflight        # on a login node: environment, packages, Natural Earth files, ffmpeg
+mkdir -p logs
+sbatch job_series.sh                  # 32 tasks; sbatch --array=16 job_series.sh for 2010 only
+```
+
+Each task writes `series/YYYY/aggregated.nc`, `series/YYYY/frames/` and `series/outcome_movie_YYYY.mp4`; logs go to `logs/ms1_series_<jobid>_<task>.out`. A re-run reuses an existing `aggregated.nc` and re-renders the frames (`REDO=1 sbatch job_series.sh` to re-aggregate as well). The frames need cartopy and geopandas from the `python3` module, the Natural Earth 50m land and coastline files, which cartopy downloads once (the tasks serialise on a lock), and an ffmpeg binary, found on the PATH, in an `ffmpeg` module, or bundled with `imageio-ffmpeg`.

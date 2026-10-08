@@ -30,6 +30,11 @@ The cohort is that year's own peak release date. Spawning years after 2016
 are excluded so the movie cannot be read as a statement about the post-2016
 low-ice regime. --date overrides the choice.
 
+--year YYYY picks instead the cohort released on the climatological peak day
+(step 1 above, January 29) of that spawning year, whatever that year's own
+peak. This is what the per-year series (job_series.sh) uses: every movie then
+starts on the same calendar day, so the years can be compared.
+
 Particles are matched between the trajectory file and the recruitment file by
 position in the file: process_cohort.py writes one row per trajectory, in
 trajectory order. This is checked rather than assumed, by comparing the
@@ -51,6 +56,7 @@ Usage
 -----
     python aggregate.py                      # cohort chosen from F2
     python aggregate.py --date 2006-01-29    # explicit cohort
+    python aggregate.py --year 2010          # climatological peak day of 2010
     python aggregate.py --stride 4           # every 4th particle, for tests
 
 Submit via job.sh on the HPC rather than running on a login node.
@@ -128,17 +134,27 @@ def season_day_to_date(spawning_year: int, season_day: int) -> pd.Timestamp:
     return date
 
 
-def choose_cohort() -> tuple[pd.Timestamp, str]:
-    """Pick the cohort from F2's aggregation; return (date, rationale)."""
+def read_f2() -> tuple[np.ndarray, np.ndarray]:
+    """Per-year success rate (%) by season day, and the spawning years."""
     ds = xr.open_dataset(F2_AGGREGATED)
     rate = ds["success_rate"].where(ds["has_data"]).values * 100.0
-    years = ds["year"].values
+    years = ds["year"].values.astype(int)
+    return rate, years
 
+
+def climatological_peak_day(rate: np.ndarray) -> int:
+    """Season-day index of the maximum of the 32-year mean curve."""
     # The last season-day slot (Mar 15) is never populated, hence the
     # all-NaN column warning silenced here.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        clim_peak = int(np.nanargmax(np.nanmean(rate, axis=0)))
+        return int(np.nanargmax(np.nanmean(rate, axis=0)))
+
+
+def choose_cohort() -> tuple[pd.Timestamp, str]:
+    """Pick the cohort from F2's aggregation; return (date, rationale)."""
+    rate, years = read_f2()
+    clim_peak = climatological_peak_day(rate)
 
     peak_day = np.full(years.size, -1)
     peak_value = np.full(years.size, np.nan)
@@ -165,6 +181,32 @@ def choose_cohort() -> tuple[pd.Timestamp, str]:
         f"{peak_value[best]:.2f}%; climatological peak {clim_date:%b %d}; "
         f"median per-year peak {median_peak:.2f}%; "
         f"years after {LAST_YEAR_BEFORE_REGIME} excluded"
+    )
+    return date, rationale
+
+
+def cohort_for_year(year: int) -> tuple[pd.Timestamp, str]:
+    """
+    The cohort released on the climatological peak day of a spawning year.
+
+    Same first step as choose_cohort (the maximum of the 32-year mean curve,
+    read from F2 rather than hardcoded), applied to the requested year
+    instead of searching for the year that matches it best.
+    """
+    rate, years = read_f2()
+    if year not in years:
+        sys.exit(f"ERROR: spawning year {year} is not in F2's aggregation "
+                 f"({years.min()}-{years.max()}).")
+    clim_peak = climatological_peak_day(rate)
+    date = season_day_to_date(year, clim_peak)
+    own = float(rate[np.flatnonzero(years == year)[0], clim_peak])
+    if np.isnan(own):
+        print(f"WARNING: F2 has no data for {date.date()}; the trajectory "
+              f"file may be missing.")
+    rationale = (
+        f"spawning year {year} on the climatological peak release date "
+        f"{date:%b %d} (maximum of the 32-year mean curve); success rate "
+        f"that day {own:.2f}%"
     )
     return date, rationale
 
@@ -280,7 +322,11 @@ def read_sea_ice(glorys: Path, dates: pd.DatetimeIndex):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
-    parser.add_argument("--date", help="release date YYYY-MM-DD (default: chosen from F2)")
+    cohort = parser.add_mutually_exclusive_group()
+    cohort.add_argument("--date", help="release date YYYY-MM-DD (default: chosen from F2)")
+    cohort.add_argument("--year", type=int,
+                        help="spawning year; the cohort is then the "
+                             "climatological peak release date of that year")
     parser.add_argument("--stride", type=int, default=1,
                         help="keep every Nth particle (default 1, all)")
     parser.add_argument("--out", type=Path, default=OUT_PATH)
@@ -293,6 +339,8 @@ def main():
     if args.date:
         date = pd.Timestamp(args.date).normalize()
         rationale = "release date given on the command line"
+    elif args.year:
+        date, rationale = cohort_for_year(args.year)
     else:
         date, rationale = choose_cohort()
     print(f"Cohort: {date.date()} ({rationale})")
