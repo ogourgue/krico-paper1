@@ -48,7 +48,14 @@ FIRST_YEAR=1994        # spawning years as in F2's aggregation
 LAST_YEAR=2025
 SERIES_DIR="series"    # relative to this folder; gitignored
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
+die() { echo "ERROR: $*" >&2; exit 1; }
+
+# SLURM runs a copy of this script from its spool directory, so BASH_SOURCE
+# does not locate this folder inside a job; the job starts in the submission
+# directory instead, which is this folder when submitted as documented above.
+cd "${SLURM_SUBMIT_DIR:-$(dirname "${BASH_SOURCE[0]}")}"
+[[ -f aggregate.py && -f plot.py && -f make_movie.sh ]] \
+    || die "not in MS1_outcome_movie/ (cd there before sbatch or --preflight)."
 
 module load python3
 
@@ -59,8 +66,6 @@ export OMP_NUM_THREADS=1       # several plot.py processes per task, see below
 # ----------------------------------------------------------------------------
 # Checks
 # ----------------------------------------------------------------------------
-
-die() { echo "ERROR: $*" >&2; exit 1; }
 
 check_env() {
     for var in KRICO_POST KRICO_RUNS KRICO_GLORYS12; do
