@@ -11,9 +11,9 @@ __pycache__/
 
 # Aggregated data (data/aggregated.nc) and rendered figures (*.png) are
 # committed: the repo README promises that reproducing a figure needs only
-# plot.py, without the 56 GB recruitment dataset behind it. FS2 and MS1 are
-# the exceptions (see below): their aggregations are too large to track, so
-# they alone need aggregate.py re-run on the HPC.
+# plot.py, without the 56 GB recruitment dataset behind it. MS1 is the
+# exception (see below): its aggregation is too large to track, so it alone
+# needs aggregate.py re-run on the HPC.
 **/*.pdf
 
 # Downloaded sea-ice concentration files (F1; re-fetch with download_sic.sh,
@@ -26,12 +26,14 @@ __pycache__/
 # SLURM submission logs (dropped in the submission directory by ecsbatch)
 ecsbatch.log.*
 
-# FS2 exception: the mean circulation field is ~58 MB on disk on the full
-# 1/12 degree grid, above what belongs in a figure repo. Regenerable by
-# re-running FS2_currents/aggregate.py (~4.5 h batch job); see
-# FS2_currents/README.md. The checkpoint is a resume artifact of that run,
-# and the .out files are SLURM logs rather than sources.
-FS2_currents/data/aggregated.nc
+# FS2: data/aggregated.nc, the annual mean circulation that the figure shows,
+# is committed. The seasonal means are about four times larger and no figure
+# is drawn from them, so they stay out. Regenerable by re-running
+# FS2_currents/aggregate.py (~4.5 h batch job); see FS2_currents/README.md.
+# The _test files come from --limit runs, the checkpoint is a resume artifact
+# of a run, and the .out files are SLURM logs rather than sources.
+FS2_currents/data/aggregated_seasonal.nc
+FS2_currents/data/*_test.nc
 FS2_currents/data/checkpoint.npz
 FS2_currents/*.out
 

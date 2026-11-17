@@ -28,12 +28,14 @@ the domain median is ~0.03 m/s against ~0.28 m/s at the 99th percentile and
 0.72 m/s at the maximum. On a linear scale the ACC would be the only visible
 feature and the entire shelf would render as uniform white.
 
-Only the annual mean is plotted. The seasonal fields in the aggregation
-differ from it by a few percent in every domain-wide statistic (medians
-0.0288-0.0312 m/s), so four panels would show four nearly identical maps.
-Pass --period to plot one of them anyway.
+Only the annual mean is plotted. The seasonal means differ from it by a few
+percent in every domain-wide statistic (medians 0.0288-0.0312 m/s), so four
+panels would show four nearly identical maps. Pass --period to plot one of
+them anyway; that needs data/aggregated_seasonal.nc, which is not committed.
 
-Inputs:  data/aggregated.nc  (from aggregate.py, run on the HPC)
+Inputs:  data/aggregated.nc           (annual mean; committed)
+         data/aggregated_seasonal.nc  (seasonal means, for --period; from
+                                       aggregate.py, run on the HPC)
 Output:  currents.png
 """
 
@@ -305,14 +307,22 @@ def main():
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--period", default="annual", choices=PERIODS,
-                        help="which mean to plot (default: annual)")
+                        help="which mean to plot (default: annual); a season "
+                             "needs data/aggregated_seasonal.nc")
     args = parser.parse_args()
 
-    aggregated_path = here / "data" / "aggregated.nc"
+    # The annual mean and the seasonal means are in separate files.
+    if args.period == "annual":
+        aggregated_path = here / "data" / "aggregated.nc"
+        hint = ("It is committed with the repository; aggregate.py, run on "
+                "the HPC, rebuilds it.")
+    else:
+        aggregated_path = here / "data" / "aggregated_seasonal.nc"
+        hint = ("The seasonal means are not committed: run aggregate.py on "
+                "the HPC and copy data/aggregated_seasonal.nc back.")
     if not aggregated_path.exists():
         raise FileNotFoundError(
-            f"Aggregated file not found: {aggregated_path}\n"
-            f"Run aggregate.py on the HPC and copy data/aggregated.nc back."
+            f"Aggregated file not found: {aggregated_path}\n{hint}"
         )
 
     suffix = "" if args.period == "annual" else f"_{args.period}"

@@ -3,8 +3,13 @@ FS2 aggregation: time-mean GLORYS12 currents over the release depth band.
 
 Reduces the reformatted GLORYS12 velocity files to depth-averaged, time-mean
 horizontal velocity fields over the 50-200 m band, for the annual mean and
-for each of the four seasons. Runs on the HPC where Pre/GLORYS12/ lives; the
-output is small enough to copy back and plot locally.
+for each of the four seasons. Runs on the HPC where Pre/GLORYS12/ lives.
+
+The means are written to two files. The annual mean, which is the one the
+figure shows, goes to data/aggregated.nc: small enough to commit, so that
+plot.py redraws the figure from a clone of the repository. The four seasonal
+means go to data/aggregated_seasonal.nc, which is four times larger and is
+not committed; plot.py reads it only for --period.
 
 What is averaged, and why:
 
@@ -39,12 +44,17 @@ What is averaged, and why:
 
 Inputs:  $KRICO_ROOT/Pre/GLORYS12/glorys12_u_YYYY_MM.nc
          $KRICO_ROOT/Pre/GLORYS12/glorys12_v_YYYY_MM.nc
-Output:  data/aggregated.nc
+Outputs: data/aggregated.nc           (annual mean; committed)
+         data/aggregated_seasonal.nc  (seasonal means; not committed)
 
 Usage:
     python aggregate.py                 # all files, resuming if interrupted
     python aggregate.py --no-resume     # ignore any checkpoint and restart
     python aggregate.py --limit 3       # first 3 month-pairs, for testing
+
+A --limit run writes data/aggregated_test.nc and
+data/aggregated_seasonal_test.nc instead, so that a test never overwrites
+the committed file.
 """
 
 from __future__ import annotations
@@ -76,6 +86,17 @@ PERIODS = {
     "JJA": (6, 7, 8),
     "SON": (9, 10, 11),
 }
+
+# The period whose mean goes to the committed file. The means of the other
+# periods go to the seasonal file.
+COMMITTED_PERIOD = "annual"
+
+# Output file stems, in data/.
+STEM_ANNUAL = "aggregated"
+STEM_SEASONAL = "aggregated_seasonal"
+
+# Appended to both stems by a --limit run.
+TEST_SUFFIX = "_test"
 
 # Checkpoint cadence, in month-pairs.
 CHECKPOINT_EVERY = 12
@@ -337,12 +358,44 @@ def aggregate(forcing_dir: Path, out_dir: Path, resume: bool,
     return ds
 
 
+def split_outputs(ds: xr.Dataset) -> tuple[xr.Dataset, xr.Dataset]:
+    """
+    Split the means into the two datasets that are written to disk.
+
+    The first holds the mean of COMMITTED_PERIOD and depth_averaged; the
+    second holds the means of the other periods. Both carry the grid
+    coordinates and the global attributes.
+    """
+    seasonal_vars = [
+        f"{component}_{name}"
+        for name in PERIODS if name != COMMITTED_PERIOD
+        for component in ("u", "v")
+    ]
+    ds_annual = ds.drop_vars(seasonal_vars)
+    ds_seasonal = ds[seasonal_vars]
+    ds_seasonal.attrs = dict(ds.attrs)
+    ds_seasonal.attrs["title"] = (
+        "FS2 seasonal mean GLORYS12 circulation over the release depth band")
+    ds_seasonal.attrs["description"] = (
+        ds.attrs["description"]
+        + f" depth_averaged is in {STEM_ANNUAL}.nc, with the annual mean.")
+    return ds_annual, ds_seasonal
+
+
+def write(ds: xr.Dataset, path: Path) -> None:
+    """Write a dataset with every variable compressed, coordinates included."""
+    print(f"Writing {path}")
+    encoding = {v: {"zlib": True, "complevel": 5} for v in ds.variables}
+    ds.to_netcdf(path, encoding=encoding)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-resume", action="store_true",
                         help="ignore any existing checkpoint")
     parser.add_argument("--limit", type=int, default=None,
-                        help="process only the first N month-pairs")
+                        help="process only the first N month-pairs, and "
+                             f"write the outputs with a {TEST_SUFFIX} suffix")
     args = parser.parse_args()
 
     krico_root = os.environ.get("KRICO_ROOT")
@@ -362,12 +415,14 @@ def main():
     ds = aggregate(forcing_dir, out_dir, resume=not args.no_resume,
                    limit=args.limit)
 
-    out_path = out_dir / "aggregated.nc"
-    print(f"Writing {out_path}")
-    encoding = {v: {"zlib": True, "complevel": 5} for v in ds.data_vars}
-    ds.to_netcdf(out_path, encoding=encoding)
-    print("Done. The checkpoint in data/ can be deleted once this is copied "
-          "back.")
+    # A --limit run covers only part of the period: keep it apart from the
+    # full outputs, the first of which is committed.
+    suffix = "" if args.limit is None else TEST_SUFFIX
+    ds_annual, ds_seasonal = split_outputs(ds)
+    write(ds_annual, out_dir / f"{STEM_ANNUAL}{suffix}.nc")
+    write(ds_seasonal, out_dir / f"{STEM_SEASONAL}{suffix}.nc")
+    print("Done. The checkpoint in data/ can be deleted once the outputs "
+          "are copied back.")
 
 
 if __name__ == "__main__":
