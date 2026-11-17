@@ -10,7 +10,7 @@ spread of *peak dates*. This figure separates the two:
   (a) all 32 individual per-year curves, with the climatological mean
       overlaid, and each year's own peak marked
   (b) the distribution of per-year peak release dates, with the median and
-      inter-quartile range, and the climatological curve's peak for contrast
+      inter-quartile range
 
 The two panels share an x-axis so the scatter of per-year peaks in (b) lines
 up with the curves in (a).
@@ -72,9 +72,11 @@ LAST_SEASON_DAY = 119
 # Histogram bin width, in days.
 BIN_WIDTH = 7
 
-# One colour per panel, so no colour serves two purposes in the same panel:
-# C0 throughout (a), C1 throughout (b). Within a panel, elements are
-# separated by alpha and line width rather than by hue.
+# Colour roles, the same in both panels: C0 (COLOR_A) for the quantities of
+# the climatological mean curve, C1 (COLOR_B) for the per-year quantities.
+# The median per-year peak is therefore C1 in panel (a) as well, where it is
+# the same quantity as in panel (b). The individual per-year curves are
+# black at low opacity.
 COLOR_A = "C0"
 COLOR_B = "C1"
 
@@ -86,9 +88,9 @@ YEAR_CURVE_LINEWIDTH = 1.0
 YEAR_CURVE_COLOR = "black"
 YEAR_CURVE_ALPHA = 0.1
 
-# Vertical marker lines: panel (a)'s mean-curve peak and panel (b)'s median.
-# One linestyle for both, at the default line width, each in its panel's
-# colour. Dashed, matching F2's peak marker.
+# Vertical marker lines: the mean-curve peak and the median per-year peak.
+# One linestyle for both, at the default line width, each in the colour of
+# its role. Dashed, matching F2's peak marker.
 PEAK_LINESTYLE = "--"
 
 # Legends are opaque throughout the paper.
@@ -317,7 +319,7 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
                         color=COLOR_A, zorder=5, label="32-year mean")
 
     # Each year's own peak, which is what panel (b) counts. Open markers in
-    # panel (b)'s colour, opaque so they stay legible where several years
+    # the per-year colour, opaque so they stay legible where several years
     # peak close together.
     h_marks, = ax_a.plot(
         st["peak_day"][st["valid"]], st["peak_value"][st["valid"]],
