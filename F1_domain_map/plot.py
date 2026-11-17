@@ -7,12 +7,12 @@ Method figure showing:
   - the continental shelf (<1000 m, orange fill),
   - CCAMLR Subareas 48.1-48.6 and 88.3 (light gray outlines + framed labels),
   - mean sea-ice edges for 1979-2015 and 2016-2025, in February and September
-    (black contours),
+    (coloured contours),
   - cartopy land + coastlines.
 
 Subarea 48.6 is split at 60°S for the spatial analyses in F4/F5
 (48.6N north of 60°S, 48.6S south of 60°S). The split is visualized
-here with a dashed gray line within the 48.6 polygon and two separate
+here with a dotted gray line within the 48.6 polygon and two separate
 centroid labels. The rationale for the split lives in the F1 caption.
 
 Each sea-ice edge is the 15% contour of a multi-year mean monthly concentration
