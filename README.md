@@ -55,10 +55,9 @@ python plot.py
 
 Repeat in `F2_phenology_curve`, `F3_outcome_composition`, `F4_source_maps`, `F5_destination_maps`, `FS1_phenology_per_year`, and `FS2_currents`. The CCAMLR Statistical Areas shapefile is bundled at `ccamlr-data/`. No environment variables or external data are needed for this workflow.
 
-Three folders depart from that pattern:
+Two folders depart from that pattern:
 
 - **`FS1_phenology_per_year`** has no `aggregate.py` and no `data/`. It needs exactly the quantities F2 already computes, so its `plot.py` reads `../F2_phenology_curve/data/aggregated.nc` directly. Duplicating the aggregation would let the two figures disagree about the same numbers.
-- **`FS2_currents`** commits only part of its aggregation. Its `data/aggregated.nc` holds the annual mean field on the full 1/12° grid, which is what the figure shows, and is committed. The four seasonal means, read only by `plot.py --period`, go to `data/aggregated_seasonal.nc`, which is about four times larger and gitignored. Regenerating either file means re-running `FS2_currents/aggregate.py` on a machine holding the GLORYS12 velocity fields — ~1.5 TB of reads over 384 monthly files, ~4.5 h as a batch job — and copying the results back. See `FS2_currents/README.md`.
 - **`MS1_outcome_movie`** renders movie frames rather than a figure. Its `data/aggregated.nc` holds one cohort's daily positions (a few hundred MB), so it is gitignored. Regenerating it needs the raw trajectories, via `MS1_outcome_movie/job.sh` on the HPC. See `MS1_outcome_movie/README.md`.
 
 ## Re-running the aggregation from scratch
@@ -73,7 +72,7 @@ The recruitment outcome data is archived on Zenodo (DOI: [10.5281/zenodo.2254876
 
 F1 additionally needs observed sea-ice concentration, which is not committed (~22 MB). Run `F1_domain_map/download_sic.sh` first; it fetches the February and September monthly files of the NOAA/NSIDC Climate Data Record (G02202 v6, DOI: [10.7265/b18j-z797](https://doi.org/10.7265/b18j-z797)) into `F1_domain_map/data/sic/` (gitignored) over anonymous HTTPS, and records DOI, source URL, access date and per-file checksums in `F1_domain_map/sic_provenance.txt` (committed).
 
-FS2 is a batch job rather than an interactive one: submit `FS2_currents/job.sh` rather than running its `aggregate.py` on a login node. It checkpoints every 12 month-pairs and resumes, so an interrupted run does not start over.
+FS2 is a batch job rather than an interactive one — ~1.5 TB of reads over 384 monthly files, ~4.5 h: submit `FS2_currents/job.sh` rather than running its `aggregate.py` on a login node. It checkpoints every 12 month-pairs and resumes, so an interrupted run does not start over.
 
 After each aggregation run, re-run the corresponding `plot.py` to regenerate the figure.
 
@@ -112,4 +111,4 @@ S3_displacement/                # Discussion: distance travelled between release
 ccamlr-data/                    # CCAMLR Statistical Areas shapefile (bundled; see ccamlr-data/README.md)
 ```
 
-Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with one exception: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation). F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `ccamlr_summary.csv`; FS2 additionally contains `job.sh`, and its aggregation writes a second, gitignored file, `data/aggregated_seasonal.nc`. MS1 is a movie folder: it contains `README.md`, `aggregate.py`, `job.sh`, `plot.py` and `make_movie.sh`, and its `data/aggregated.nc` and `frames/` are gitignored. The `S*` folders are not figure folders: S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV; S2 contains `sweep.py`, `compare.py`, `ice_reachability.py` and two output CSVs; S3 contains `displacement.py` and its output CSV.
+Each figure folder contains its own `README.md`, `aggregate.py`, `plot.py`, `data/aggregated.nc`, and the rendered PNG(s), with one exception: FS1 has no `aggregate.py` or `data/` (it reads F2's aggregation). F1 additionally contains `download_sic.sh` and `sic_provenance.txt`; F4 and F5 additionally contain `ccamlr_summary.py` and `ccamlr_summary.csv`; FS2 additionally contains `job.sh`. MS1 is a movie folder: it contains `README.md`, `aggregate.py`, `job.sh`, `plot.py` and `make_movie.sh`, and its `data/aggregated.nc` and `frames/` are gitignored. The `S*` folders are not figure folders: S1 contains `sweep.py`, `sweep.sh`, `compare.py` and its output CSV; S2 contains `sweep.py`, `compare.py`, `ice_reachability.py` and two output CSVs; S3 contains `displacement.py` and its output CSV.

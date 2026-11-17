@@ -11,9 +11,7 @@ subareas.
 ## Scope
 
 - **Period:** November 1993 – October 2025, 384 monthly files, 11 688 daily
-  fields. The four seasonal means (DJF, MAM, JJA, SON) are computed in the same
-  pass and stored in a file of their own, but only the annual mean is plotted —
-  see "Seasonality" below.
+  fields. The field is the annual mean: the mean over every day of the record.
 - **Depth band:** 50–200 m, thickness-weighted. Nine GLORYS12 levels (centres
   47.4–186.1 m), with the weights of the top and bottom cells clipped to the
   band, summing to 150.0 m.
@@ -69,48 +67,28 @@ Four points that the caption also has to carry:
   before reducing them to the 1-D axes `streamplot` requires. A curvilinear grid
   would otherwise be silently distorted rather than rejected.
 
-## Seasonality
+## Reproducibility
 
-The seasonal means differ from the annual mean by a few percent in every
-domain-wide statistic (medians 0.0288–0.0312 m/s, 90th percentiles 0.120–0.123),
-so four panels would show four nearly identical maps. The annual mean is
-therefore the one plotted. The seasonal fields are written to
-`data/aggregated_seasonal.nc` and can be plotted with `--period`; note the
-domain-wide statistics do not exclude regional seasonality, only rule it out as
-a first-order effect at this scale.
+`data/aggregated.nc` is committed, so `plot.py` alone reproduces the figure, as
+for every other figure in this repo. It holds the annual mean (`u_annual`,
+`v_annual`) and `depth_averaged`, on the full 1/12° grid.
 
-## Reproducibility: two data files, one committed
-
-`aggregate.py` writes the means to two files in `data/`:
-
-- `aggregated.nc` — the annual mean (`u_annual`, `v_annual`) and
-  `depth_averaged`. **Committed.** It is all the figure needs, so `plot.py`
-  alone reproduces the figure, as for every other figure in this repo.
-- `aggregated_seasonal.nc` — the four seasonal means. **Not committed**
-  (gitignored): it is about four times the size of the annual file, and no
-  figure of the paper is drawn from it. Only `plot.py --period` reads it. To get
-  it, re-run `aggregate.py` on a machine with the GLORYS12 velocity fields and
-  copy the file back.
-
-`aggregate.py` reads roughly 1.5 TB over 384 month-pairs and takes ~4.5 h on one
-ECMWF node, so it is a batch job, not an interactive one; `job.sh` is the SLURM
-script used. It checkpoints every 12 month-pairs to `data/checkpoint.npz`
-(gitignored) and skips completed months on restart, so a timeout costs at most 12
-month-pairs. `--no-resume` forces a clean run; `--limit N` processes the first N
-month-pairs for testing, and writes `aggregated_test.nc` and
-`aggregated_seasonal_test.nc` (gitignored) so that a test does not overwrite the
+Rebuilding it is the heavy part. `aggregate.py` reads roughly 1.5 TB over 384
+month-pairs and takes ~4.5 h on one ECMWF node, so it is a batch job, not an
+interactive one; `job.sh` is the SLURM script used. It checkpoints every 12
+month-pairs to `data/checkpoint.npz` (gitignored) and skips completed months on
+restart, so a timeout costs at most 12 month-pairs. `--no-resume` forces a clean
+run; `--limit N` processes the first N month-pairs for testing, and writes
+`data/aggregated_test.nc` (gitignored) so that a test does not overwrite the
 committed file.
 
 ## Files
 
 - `aggregate.py` — reads the reformatted GLORYS12 velocity files, takes the
   thickness-weighted depth mean over 50–200 m of each daily field, accumulates
-  sums and counts per period, writes `data/aggregated.nc` (annual mean,
-  committed) and `data/aggregated_seasonal.nc` (seasonal means, gitignored).
-  Runs on the HPC.
+  the sum and the count of days, writes `data/aggregated.nc`. Runs on the HPC.
 - `job.sh` — SLURM submission script for `aggregate.py`.
-- `plot.py` — reads `data/aggregated.nc`, writes `currents.png`. With
-  `--period`, reads `data/aggregated_seasonal.nc` instead. Runs locally.
+- `plot.py` — reads `data/aggregated.nc`, writes `currents.png`. Runs locally.
 - `data/aggregated.nc` — annual mean velocity over 50–200 m, and the thickness
   averaged over at each cell.
 
@@ -132,7 +110,7 @@ To redraw the figure from the committed `data/aggregated.nc`:
 python plot.py
 ```
 
-To rebuild the data files, on the HPC:
+To rebuild `data/aggregated.nc`, on the HPC:
 
 ```bash
 python3 aggregate.py --limit 2      # check the level table and paths
@@ -141,9 +119,8 @@ sbatch job.sh                        # full run, ~4.5 h
 
 Before a new full run, delete `data/checkpoint.npz` if an earlier run left one;
 otherwise the completed months are skipped. Then copy `data/aggregated.nc` back
-(and `data/aggregated_seasonal.nc`, for the seasonal maps) and, locally:
+and, locally:
 
 ```bash
 python plot.py
-python plot.py --period DJF          # optional, any of DJF/MAM/JJA/SON
 ```

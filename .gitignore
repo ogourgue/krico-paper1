@@ -26,13 +26,10 @@ __pycache__/
 # SLURM submission logs (dropped in the submission directory by ecsbatch)
 ecsbatch.log.*
 
-# FS2: data/aggregated.nc, the annual mean circulation that the figure shows,
-# is committed. The seasonal means are about four times larger and no figure
-# is drawn from them, so they stay out. Regenerable by re-running
-# FS2_currents/aggregate.py (~4.5 h batch job); see FS2_currents/README.md.
-# The _test files come from --limit runs, the checkpoint is a resume artifact
-# of a run, and the .out files are SLURM logs rather than sources.
-FS2_currents/data/aggregated_seasonal.nc
+# FS2: data/aggregated.nc is committed, like the other aggregations. The
+# _test file comes from --limit runs of FS2_currents/aggregate.py (~4.5 h
+# batch job in full; see FS2_currents/README.md), the checkpoint is a resume
+# artifact of a run, and the .out files are SLURM logs rather than sources.
 FS2_currents/data/*_test.nc
 FS2_currents/data/checkpoint.npz
 FS2_currents/*.out
