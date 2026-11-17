@@ -10,7 +10,7 @@ spread of *peak dates*. This figure separates the two:
   (a) all 32 individual per-year curves, with the climatological mean
       overlaid, and each year's own peak marked
   (b) the distribution of per-year peak release dates, with the median and
-      inter-quartile range, and the climatological curve's peak for contrast
+      inter-quartile range
 
 The two panels share an x-axis so the scatter of per-year peaks in (b) lines
 up with the curves in (a).
@@ -72,9 +72,11 @@ LAST_SEASON_DAY = 119
 # Histogram bin width, in days.
 BIN_WIDTH = 7
 
-# One colour per panel, so no colour serves two purposes in the same panel:
-# C0 throughout (a), C1 throughout (b). Within a panel, elements are
-# separated by alpha and line width rather than by hue.
+# Colour roles, the same in both panels: C0 (COLOR_A) for the quantities of
+# the climatological mean curve, C1 (COLOR_B) for the per-year quantities.
+# The median per-year peak is therefore C1 in panel (a) as well, where it is
+# the same quantity as in panel (b). The individual per-year curves are
+# black at low opacity.
 COLOR_A = "C0"
 COLOR_B = "C1"
 
@@ -86,9 +88,9 @@ YEAR_CURVE_LINEWIDTH = 1.0
 YEAR_CURVE_COLOR = "black"
 YEAR_CURVE_ALPHA = 0.1
 
-# Vertical marker lines: panel (a)'s mean-curve peak and panel (b)'s median.
-# One linestyle for both, at the default line width, each in its panel's
-# colour. Dashed, matching F2's peak marker.
+# Vertical marker lines: the mean-curve peak and the median per-year peak.
+# One linestyle for both, at the default line width, each in the colour of
+# its role. Dashed, matching F2's peak marker.
 PEAK_LINESTYLE = "--"
 
 # Legends are opaque throughout the paper.
@@ -193,9 +195,16 @@ def compute_stats(ds: xr.Dataset) -> dict:
         "peak_day": peak_day,
         "peak_value": peak_value,
         "valid": valid,
+        # Quartiles rounded to a whole season day: what the figure draws and
+        # labels. With an even number of years a quartile can fall on a half
+        # day, which round() takes to the even season day.
         "peak_day_median": int(round(p50)),
         "peak_day_p25": int(round(p25)),
         "peak_day_p75": int(round(p75)),
+        # The same quartiles unrounded, for the statistics printed below.
+        "peak_day_median_exact": float(p50),
+        "peak_day_p25_exact": float(p25),
+        "peak_day_p75_exact": float(p75),
         "peak_day_mean": float(np.mean(pd_valid)),
         "peak_value_mean": float(np.nanmean(peak_value[valid])),
     }
@@ -223,14 +232,20 @@ def print_stats(st: dict) -> None:
           f"mean {season_day_to_label(int(round(st['peak_day_mean'])))}, "
           f"IQR {season_day_to_label(st['peak_day_p25'])} to "
           f"{season_day_to_label(st['peak_day_p75'])} "
-          f"({st['peak_day_p75'] - st['peak_day_p25']} days)")
+          f"(dates rounded to whole days, as plotted)")
+    print(f"  Per-year peak date, unrounded season days: "
+          f"quartiles {st['peak_day_p25_exact']:.1f} / "
+          f"{st['peak_day_median_exact']:.1f} / "
+          f"{st['peak_day_p75_exact']:.1f}, IQR "
+          f"{st['peak_day_p75_exact'] - st['peak_day_p25_exact']:.1f} days")
     print(f"  Per-year peak value: mean {st['peak_value_mean']:.2f}%")
     print(f"  Offset: the mean curve peaks "
-          f"{st['clim_peak_day'] - st['peak_day_median']:+d} days later and "
+          f"{st['clim_peak_day'] - st['peak_day_median_exact']:+.1f} days "
+          f"later and "
           f"{st['clim_peak_value'] - st['peak_value_mean']:+.2f} points lower "
           f"than the median/mean per-year peak")
     print(f"  Skew check: per-year peak date mean minus median = "
-          f"{st['peak_day_mean'] - st['peak_day_median']:+.1f} days "
+          f"{st['peak_day_mean'] - st['peak_day_median_exact']:+.1f} days "
           f"(near zero implies a symmetric distribution)")
 
     # Per-year listing, sorted by peak date, so any clustering or bimodality
@@ -304,7 +319,7 @@ def plot(aggregated_path: Path, out_path: Path) -> None:
                         color=COLOR_A, zorder=5, label="32-year mean")
 
     # Each year's own peak, which is what panel (b) counts. Open markers in
-    # panel (b)'s colour, opaque so they stay legible where several years
+    # the per-year colour, opaque so they stay legible where several years
     # peak close together.
     h_marks, = ax_a.plot(
         st["peak_day"][st["valid"]], st["peak_value"][st["valid"]],
