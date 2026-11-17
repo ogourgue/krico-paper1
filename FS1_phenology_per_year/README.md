@@ -25,10 +25,12 @@ conflated: because `max()` is nonlinear, the maximum of the mean curve is not
 the mean of the per-year maxima. This figure separates them.
 
 The climatological curve peaks on January 29 at 7.12%; the per-year peaks have a
-median of January 24 and a mean value of 7.61%. The mean curve therefore peaks
-five days later and half a point lower than a typical individual year, because
-averaging curves whose maxima fall on different dates broadens and flattens the
-composite.
+mean value of 7.61% and a median date between January 24 and 25. With 32 years
+the median is the midpoint of the two central peaks, January 24 and 25 (season
+day 70.5); the figure draws and labels it rounded to January 24. The mean curve
+therefore peaks 4.5 days later and half a point lower than a typical individual
+year, because averaging curves whose maxima fall on different dates broadens and
+flattens the composite.
 
 The per-year peak-date distribution is **unimodal**: one KDE mode at bandwidths
 from 0.8× to 1.5× Scott's factor, stable under rebinning at 5, 7, 10 and 14 days

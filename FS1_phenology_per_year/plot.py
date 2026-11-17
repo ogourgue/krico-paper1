@@ -193,9 +193,16 @@ def compute_stats(ds: xr.Dataset) -> dict:
         "peak_day": peak_day,
         "peak_value": peak_value,
         "valid": valid,
+        # Quartiles rounded to a whole season day: what the figure draws and
+        # labels. With an even number of years a quartile can fall on a half
+        # day, which round() takes to the even season day.
         "peak_day_median": int(round(p50)),
         "peak_day_p25": int(round(p25)),
         "peak_day_p75": int(round(p75)),
+        # The same quartiles unrounded, for the statistics printed below.
+        "peak_day_median_exact": float(p50),
+        "peak_day_p25_exact": float(p25),
+        "peak_day_p75_exact": float(p75),
         "peak_day_mean": float(np.mean(pd_valid)),
         "peak_value_mean": float(np.nanmean(peak_value[valid])),
     }
@@ -223,14 +230,20 @@ def print_stats(st: dict) -> None:
           f"mean {season_day_to_label(int(round(st['peak_day_mean'])))}, "
           f"IQR {season_day_to_label(st['peak_day_p25'])} to "
           f"{season_day_to_label(st['peak_day_p75'])} "
-          f"({st['peak_day_p75'] - st['peak_day_p25']} days)")
+          f"(dates rounded to whole days, as plotted)")
+    print(f"  Per-year peak date, unrounded season days: "
+          f"quartiles {st['peak_day_p25_exact']:.1f} / "
+          f"{st['peak_day_median_exact']:.1f} / "
+          f"{st['peak_day_p75_exact']:.1f}, IQR "
+          f"{st['peak_day_p75_exact'] - st['peak_day_p25_exact']:.1f} days")
     print(f"  Per-year peak value: mean {st['peak_value_mean']:.2f}%")
     print(f"  Offset: the mean curve peaks "
-          f"{st['clim_peak_day'] - st['peak_day_median']:+d} days later and "
+          f"{st['clim_peak_day'] - st['peak_day_median_exact']:+.1f} days "
+          f"later and "
           f"{st['clim_peak_value'] - st['peak_value_mean']:+.2f} points lower "
           f"than the median/mean per-year peak")
     print(f"  Skew check: per-year peak date mean minus median = "
-          f"{st['peak_day_mean'] - st['peak_day_median']:+.1f} days "
+          f"{st['peak_day_mean'] - st['peak_day_median_exact']:+.1f} days "
           f"(near zero implies a symmetric distribution)")
 
     # Per-year listing, sorted by peak date, so any clustering or bimodality
