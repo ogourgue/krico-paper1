@@ -1,5 +1,5 @@
 """
-FS1 aggregation: time-mean GLORYS12 currents over the release depth band.
+FS2 aggregation: time-mean GLORYS12 currents over the release depth band.
 
 Reduces the reformatted GLORYS12 velocity files to depth-averaged, time-mean
 horizontal velocity fields over the 50-200 m band, for the annual mean and
@@ -313,7 +313,7 @@ def aggregate(forcing_dir: Path, out_dir: Path, resume: bool,
                         {"units": "degrees_north"}),
         },
         attrs={
-            "title": "FS1 mean GLORYS12 circulation over the release depth band",
+            "title": "FS2 mean GLORYS12 circulation over the release depth band",
             "description": (
                 "Thickness-weighted depth mean over "
                 f"{DEPTH_MIN:.0f}-{DEPTH_MAX:.0f} m of the daily GLORYS12v1 "
