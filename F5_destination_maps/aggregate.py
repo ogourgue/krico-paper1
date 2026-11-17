@@ -10,7 +10,7 @@ Output is normalized within each outcome (densities sum to 1 across cells
 for each outcome): "of all particles that ended in this fate, this is the
 fractional spatial fate-position distribution."
 
-Inputs:  $KRICO_POST/Production/recruitment/data/YYYY_MM_DD.nc
+Inputs:  $KRICO_POST/recruitment/data/YYYY_MM_DD.nc
 Output:  data/aggregated.nc
 """
 
