@@ -1,10 +1,11 @@
 """
 FS2 aggregation: time-mean GLORYS12 currents over the release depth band.
 
-Reduces the reformatted GLORYS12 velocity files to depth-averaged, time-mean
-horizontal velocity fields over the 50-200 m band, for the annual mean and
-for each of the four seasons. Runs on the HPC where Pre/GLORYS12/ lives; the
-output is small enough to copy back and plot locally.
+Reduces the reformatted GLORYS12 velocity files to the depth-averaged, annual
+mean horizontal velocity field over the 50-200 m band: the mean over every
+day of the record. Runs on the HPC where Pre/GLORYS12/ lives. The output,
+data/aggregated.nc, is committed, so that plot.py redraws the figure from a
+clone of the repository.
 
 What is averaged, and why:
 
@@ -45,6 +46,9 @@ Usage:
     python aggregate.py                 # all files, resuming if interrupted
     python aggregate.py --no-resume     # ignore any checkpoint and restart
     python aggregate.py --limit 3       # first 3 month-pairs, for testing
+
+A --limit run writes data/aggregated_test.nc instead, so that a test never
+overwrites the committed file.
 """
 
 from __future__ import annotations
@@ -67,15 +71,11 @@ import xarray as xr
 DEPTH_MIN = 50.0
 DEPTH_MAX = 200.0
 
-# Periods accumulated in a single pass over the files. "annual" takes every
-# day; the others select on calendar month.
-PERIODS = {
-    "annual": None,
-    "DJF": (12, 1, 2),
-    "MAM": (3, 4, 5),
-    "JJA": (6, 7, 8),
-    "SON": (9, 10, 11),
-}
+# Output file stem, in data/.
+OUTPUT_STEM = "aggregated"
+
+# Appended to the stem by a --limit run.
+TEST_SUFFIX = "_test"
 
 # Checkpoint cadence, in month-pairs.
 CHECKPOINT_EVERY = 12
@@ -167,31 +167,29 @@ def effective_thickness(block: np.ndarray, weights: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 class Accumulator:
-    """Running sums of the depth-averaged daily fields, per period."""
+    """Running sums of the depth-averaged daily fields."""
 
     def __init__(self, shape: tuple[int, int]):
         self.shape = shape
-        self.u = {k: np.zeros(shape) for k in PERIODS}
-        self.v = {k: np.zeros(shape) for k in PERIODS}
-        self.n = {k: 0 for k in PERIODS}
+        self.u = np.zeros(shape)
+        self.v = np.zeros(shape)
+        self.n = 0
         self.done: list[str] = []
         self.depth_averaged: np.ndarray | None = None
 
-    def add_day(self, month: int, u2d: np.ndarray, v2d: np.ndarray) -> None:
-        for name, months in PERIODS.items():
-            if months is None or month in months:
-                # NaN over land; treat as zero in the sum and rely on the
-                # static mask, which is identical for every timestep.
-                self.u[name] += np.nan_to_num(u2d)
-                self.v[name] += np.nan_to_num(v2d)
-                self.n[name] += 1
+    def add_day(self, u2d: np.ndarray, v2d: np.ndarray) -> None:
+        # NaN over land; treat as zero in the sum and rely on the static
+        # mask, which is identical for every timestep.
+        self.u += np.nan_to_num(u2d)
+        self.v += np.nan_to_num(v2d)
+        self.n += 1
 
     def to_npz(self, path: Path) -> None:
         np.savez_compressed(
             path,
-            **{f"u_{k}": v for k, v in self.u.items()},
-            **{f"v_{k}": v for k, v in self.v.items()},
-            **{f"n_{k}": np.array(v) for k, v in self.n.items()},
+            u=self.u,
+            v=self.v,
+            n=np.array(self.n),
             done=np.array(self.done),
             depth_averaged=(self.depth_averaged
                             if self.depth_averaged is not None
@@ -201,12 +199,14 @@ class Accumulator:
     @classmethod
     def from_npz(cls, path: Path) -> "Accumulator":
         z = np.load(path, allow_pickle=False)
-        shape = z["u_annual"].shape
-        acc = cls(shape)
-        for k in PERIODS:
-            acc.u[k] = z[f"u_{k}"]
-            acc.v[k] = z[f"v_{k}"]
-            acc.n[k] = int(z[f"n_{k}"])
+        if "u" not in z.files:
+            raise ValueError(
+                f"{path} was written by an earlier version of this script. "
+                f"Delete it, or pass --no-resume.")
+        acc = cls(z["u"].shape)
+        acc.u = z["u"]
+        acc.v = z["v"]
+        acc.n = int(z["n"])
         acc.done = [str(s) for s in z["done"]]
         acc.depth_averaged = z["depth_averaged"]
         return acc
@@ -264,13 +264,12 @@ def aggregate(forcing_dir: Path, out_dir: Path, resume: bool,
                 vb = v_block.isel(time_counter=t).values
                 if acc.depth_averaged is None or not acc.depth_averaged.any():
                     acc.depth_averaged = effective_thickness(ub, weights)
-                acc.add_day(month,
-                            depth_average(ub, weights),
+                acc.add_day(depth_average(ub, weights),
                             depth_average(vb, weights))
 
         acc.done.append(tag)
         print(f"  [{i:3d}/{len(pairs)}] {tag}  {n_days} days  "
-              f"(annual n = {acc.n['annual']})")
+              f"(n = {acc.n})")
 
         if i % CHECKPOINT_EVERY == 0:
             acc.to_npz(checkpoint)
@@ -279,25 +278,24 @@ def aggregate(forcing_dir: Path, out_dir: Path, resume: bool,
     assert acc is not None
 
     # ------------------------------------------------------------------
-    # Means
+    # Mean
     # ------------------------------------------------------------------
+    n = max(acc.n, 1)
+    # Restore the land mask, which nan_to_num removed from the sums.
+    mask = np.isfinite(acc.depth_averaged) & (acc.depth_averaged > 0)
+    u_mean = np.where(mask, acc.u / n, np.nan).astype(np.float32)
+    v_mean = np.where(mask, acc.v / n, np.nan).astype(np.float32)
     data_vars = {}
-    for name in PERIODS:
-        n = max(acc.n[name], 1)
-        # Restore the land mask, which nan_to_num removed from the sums.
-        mask = np.isfinite(acc.depth_averaged) & (acc.depth_averaged > 0)
-        u_mean = np.where(mask, acc.u[name] / n, np.nan).astype(np.float32)
-        v_mean = np.where(mask, acc.v[name] / n, np.nan).astype(np.float32)
-        data_vars[f"u_{name}"] = (
-            ("y", "x"), u_mean,
-            {"long_name": f"{name} mean zonal velocity, "
-                          f"{DEPTH_MIN:.0f}-{DEPTH_MAX:.0f} m",
-             "units": "m s-1", "n_days": acc.n[name]})
-        data_vars[f"v_{name}"] = (
-            ("y", "x"), v_mean,
-            {"long_name": f"{name} mean meridional velocity, "
-                          f"{DEPTH_MIN:.0f}-{DEPTH_MAX:.0f} m",
-             "units": "m s-1", "n_days": acc.n[name]})
+    data_vars["u_annual"] = (
+        ("y", "x"), u_mean,
+        {"long_name": "annual mean zonal velocity, "
+                      f"{DEPTH_MIN:.0f}-{DEPTH_MAX:.0f} m",
+         "units": "m s-1", "n_days": acc.n})
+    data_vars["v_annual"] = (
+        ("y", "x"), v_mean,
+        {"long_name": "annual mean meridional velocity, "
+                      f"{DEPTH_MIN:.0f}-{DEPTH_MAX:.0f} m",
+         "units": "m s-1", "n_days": acc.n})
 
     data_vars["depth_averaged"] = (
         ("y", "x"), acc.depth_averaged.astype(np.float32),
@@ -330,11 +328,16 @@ def aggregate(forcing_dir: Path, out_dir: Path, resume: bool,
     )
 
     print()
-    print("Days accumulated per period:")
-    for name in PERIODS:
-        print(f"  {name:7s} {acc.n[name]:6d}")
+    print(f"Days accumulated: {acc.n}")
 
     return ds
+
+
+def write(ds: xr.Dataset, path: Path) -> None:
+    """Write the dataset with every variable compressed, coordinates included."""
+    print(f"Writing {path}")
+    encoding = {v: {"zlib": True, "complevel": 5} for v in ds.variables}
+    ds.to_netcdf(path, encoding=encoding)
 
 
 def main():
@@ -342,7 +345,8 @@ def main():
     parser.add_argument("--no-resume", action="store_true",
                         help="ignore any existing checkpoint")
     parser.add_argument("--limit", type=int, default=None,
-                        help="process only the first N month-pairs")
+                        help="process only the first N month-pairs, and "
+                             f"write the output with a {TEST_SUFFIX} suffix")
     args = parser.parse_args()
 
     krico_root = os.environ.get("KRICO_ROOT")
@@ -362,12 +366,12 @@ def main():
     ds = aggregate(forcing_dir, out_dir, resume=not args.no_resume,
                    limit=args.limit)
 
-    out_path = out_dir / "aggregated.nc"
-    print(f"Writing {out_path}")
-    encoding = {v: {"zlib": True, "complevel": 5} for v in ds.data_vars}
-    ds.to_netcdf(out_path, encoding=encoding)
-    print("Done. The checkpoint in data/ can be deleted once this is copied "
-          "back.")
+    # A --limit run covers only part of the record: keep it apart from the
+    # full output, which is committed.
+    suffix = "" if args.limit is None else TEST_SUFFIX
+    write(ds, out_dir / f"{OUTPUT_STEM}{suffix}.nc")
+    print("Done. The checkpoint in data/ can be deleted once the output is "
+          "copied back.")
 
 
 if __name__ == "__main__":

@@ -28,18 +28,14 @@ the domain median is ~0.03 m/s against ~0.28 m/s at the 99th percentile and
 0.72 m/s at the maximum. On a linear scale the ACC would be the only visible
 feature and the entire shelf would render as uniform white.
 
-Only the annual mean is plotted. The seasonal fields in the aggregation
-differ from it by a few percent in every domain-wide statistic (medians
-0.0288-0.0312 m/s), so four panels would show four nearly identical maps.
-Pass --period to plot one of them anyway.
+The field is the annual mean: the mean over every day of the record.
 
-Inputs:  data/aggregated.nc  (from aggregate.py, run on the HPC)
+Inputs:  data/aggregated.nc  (from aggregate.py, run on the HPC; committed)
 Output:  currents.png
 """
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
 import cartopy.crs as ccrs
@@ -98,8 +94,6 @@ STREAM_DENSITY = 2.5
 STREAM_COLOR = "0.25"
 STREAM_LINEWIDTH = 0.4
 STREAM_ARROWSIZE = 0.6
-
-PERIODS = ("annual", "DJF", "MAM", "JJA", "SON")
 
 
 # ---------------------------------------------------------------------------
@@ -232,18 +226,18 @@ def grid_1d(ds: xr.Dataset) -> tuple[np.ndarray, np.ndarray]:
 # Plot
 # ---------------------------------------------------------------------------
 
-def plot(aggregated_path: Path, out_path: Path, period: str) -> None:
+def plot(aggregated_path: Path, out_path: Path) -> None:
     ds = xr.open_dataset(aggregated_path)
 
-    u = ds[f"u_{period}"].values
-    v = ds[f"v_{period}"].values
-    n_days = ds[f"u_{period}"].attrs.get("n_days", "?")
+    u = ds["u_annual"].values
+    v = ds["v_annual"].values
+    n_days = ds["u_annual"].attrs.get("n_days", "?")
     lon, lat = grid_1d(ds)
 
     speed = np.hypot(u, v)
     valid = np.isfinite(speed)
 
-    print(f"Period {period}: n_days = {n_days}")
+    print(f"Annual mean: n_days = {n_days}")
     print("  speed: median %.4f  p90 %.4f  p99 %.4f  max %.4f m/s" % (
         np.nanmedian(speed), np.nanpercentile(speed, 90),
         np.nanpercentile(speed, 99), np.nanmax(speed)))
@@ -302,21 +296,16 @@ def plot(aggregated_path: Path, out_path: Path, period: str) -> None:
 
 def main():
     here = Path(__file__).resolve().parent
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--period", default="annual", choices=PERIODS,
-                        help="which mean to plot (default: annual)")
-    args = parser.parse_args()
-
     aggregated_path = here / "data" / "aggregated.nc"
+
     if not aggregated_path.exists():
         raise FileNotFoundError(
             f"Aggregated file not found: {aggregated_path}\n"
-            f"Run aggregate.py on the HPC and copy data/aggregated.nc back."
+            f"It is committed with the repository; aggregate.py, run on the "
+            f"HPC, rebuilds it."
         )
 
-    suffix = "" if args.period == "annual" else f"_{args.period}"
-    plot(aggregated_path, here / f"currents{suffix}.png", args.period)
+    plot(aggregated_path, here / "currents.png")
 
 
 if __name__ == "__main__":
